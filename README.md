@@ -1,6 +1,6 @@
-# HELIO — Real Estate Beyond RGB
+# HELIO — Beyond RGB
 
-### Hyperspectral land-investment intelligence · Makeathon 2026 · ISENSE / ICCS
+### Hyperspectral land-investment intelligence · Makeathon 2026
 
 HELIO turns raw **EnMAP hyperspectral satellite imagery** into a defensible
 land-investment decision. A buyer describes, in plain language, what they intend
@@ -184,4 +184,4 @@ detail.
 
 ---
 
-*HELIO · Real Estate Beyond RGB · Makeathon 2026 · ISENSE / ICCS*
+*HELIO · Beyond RGB · Makeathon 2026*
