@@ -21,7 +21,7 @@ and an architecture diagram in **[HELIO_architecture.svg](HELIO_architecture.svg
 
 ```
 contest/
-├── analysis/                  ← data-science pipeline (Python)
+├── analysis/                  ← data-science pipeline
 │   ├── scripts/
 │   │   ├── 01_explore_data.py    exploration & quality masks
 │   │   ├── 02_indices_maps.py    spectral indices
