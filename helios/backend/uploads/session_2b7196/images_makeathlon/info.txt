@@ -1,0 +1,234 @@
+Part 1: What wavelengths actually tell you (plain physics)
+Think of the spectrum as a fingerprint of what's on the ground. Different materials absorb and reflect light differently at different wavelengths. That's all this is.
+Here's the full 420–2445 nm range split into regions that actually mean something:
+420–700 nm — Visible light (what your eyes see)
+
+Healthy green plants absorb blue (~450 nm) and red (~670 nm) for photosynthesis
+They reflect green (~550 nm) — that's why they look green
+Dead/dry plants stop absorbing → they look brown/yellow
+
+700–900 nm — Red edge + Near-Infrared (NIR)
+
+Healthy plants reflect NIR very strongly (cell structure, not pigment)
+This is the single most important region for vegetation
+The "red edge" at ~700–730 nm is the sharp jump from low red reflectance to high NIR — its position and slope tells you biomass and chlorophyll concentration
+Dead or stressed plants → the jump is weaker and shifts
+
+1000–1800 nm — SWIR1 (Shortwave Infrared)
+
+Leaf and soil water content (absorbs around 1200 nm, 1450 nm)
+Soil mineral content
+The 1340–1460 nm window is mostly atmospheric water vapour absorbing the signal before it reaches the satellite — you get noise, not ground truth. Drop it.
+
+1800–2450 nm — SWIR2
+
+Clay minerals have a specific absorption feature at ~2200 nm (OH bend)
+Carbonates at ~2330 nm
+Organic matter, salt
+Again, 1790–1960 nm is another atmospheric water vapour window. Drop it.
+
+850–1000 nm — the stitch zone
+
+EnMAP has two physical detectors: one for VNIR, one for SWIR. They join here.
+The join creates oscillation artefacts (noise, not real signal). Drop it too.
+
+Summary — what to keep vs drop:
+KEEP:  420–850 nm        (VNIR — vegetation, chlorophyll, soil)
+DROP:  850–1000 nm       (detector stitch noise)
+KEEP:  1000–1340 nm      (SWIR — moisture, soil minerals)
+DROP:  1340–1460 nm      (water vapour — atmosphere eating signal)
+KEEP:  1460–1790 nm      (SWIR — clay, organic, dry soil)
+DROP:  1790–1960 nm      (water vapour again)
+KEEP:  1960–2445 nm      (SWIR2 — clay at 2200, carbonate at 2330)
+After dropping, you have ~180–195 usable bands out of 224.
+
+Part 2: What the indices are and why they matter for this competition
+These are simple arithmetic on specific bands. They convert a 224-point spectrum into a single number that means something physically.
+NDVI = (NIR₈₆₀ − Red₆₆₀) / (NIR₈₆₀ + Red₆₆₀)
+→ Ranges −1 to +1. Bare soil ≈ 0.1. Sparse vegetation ≈ 0.3. Dense healthy crops ≈ 0.6–0.8.
+→ Investment meaning: high NDVI = productive agricultural land.
+NDRE = (NIR₇₈₀ − RedEdge₇₂₀) / (NIR₇₈₀ + RedEdge₇₂₀)
+→ Same idea but uses the red-edge. More sensitive than NDVI at high biomass levels where NDVI saturates.
+→ Use both. If NDRE is high but NDVI is saturated, it confirms genuinely dense vegetation.
+NDMI = (NIR₈₆₀ − SWIR₁₆₄₀) / (NIR₈₆₀ + SWIR₁₆₄₀)
+→ Leaf moisture content. High = wet leaves = active growing plants or irrigated land.
+→ Investment meaning: chronically low NDMI = dry/rain-fed land with stress risk.
+BSI (Bare Soil Index) = ((SWIR₁₆₀₀ + Red₆₆₀) − (NIR₈₃₀ + Blue₄₈₀)) / (...)
+→ High = lot of exposed bare soil = low vegetation cover or degraded land.
+Clay Index = ratio around 2200 nm absorption depth
+→ High = clay-rich soil. Clay soils swell when wet, crack when dry — expensive for foundations and problematic for certain crops.
+→ Investment meaning: very high clay = hidden risk, not a plus.
+RX Anomaly Score — Mahalanobis distance of each pixel from the "average pixel" of all four sites pooled together.
+→ High score = this pixel looks nothing like typical agricultural land. Could be: contamination, buried infrastructure, salinity patch, wetland.
+→ Investment meaning: lots of anomalous pixels = hidden problem.
+
+Part 3: Your actual data situation and what to do
+You said: 4 acquisitions total — 3 from 2024, 1 from October 2025.
+First critical question: are these 4 acquisitions one per site, or are some sites getting multiple?
+The two scenarios:
+Scenario A: 1 acquisition per site (most likely)
+You have one snapshot per plot. The October ones are dry/senescent — vegetation is gone, fields are bare. This weakens vegetation indices but still gives you soil, clay, moisture, and anomaly signal. Perfectly workable for a hackathon. You run all indices on what you have and compare sites.
+Scenario B: Multiple acquisitions for the same site, zero for another
+Then you're missing data for that site. You need to go back to the HuggingFace tool and get it.
+Should you download more data from other years?
+Only if you have time AND a site is missing a scene entirely. Adding more years adds complexity (different phenological states, different atmospheric conditions) without adding much comparative value. The judges want you to rank 4 sites — you need one clean scene per site minimum. More is only useful for the temporal angle, which is secondary under time pressure.
+
+
+==============================================================================================================================================================================================
+
+
+Three scripts, run them in order. Here's exactly what each does and what to expect:
+
+01_explore_data.py — pure exploration, no analysis yet. Run this first and look at the outputs before touching any model. It gives you:
+
+Quality mask map — you'll see how many pixels survive cloud/shadow filtering
+True-colour RGB and false-colour (vegetation pops red in false-colour)
+Overlaid mean spectra of all 4 sites on one chart — the differences in shape here are your first real signal
+Per-band variance — spikes in the 850–1000 nm and absorption windows visually confirm which bands to drop
+
+02_indices_maps.py — spectral indices as 18×18 spatial heatmaps plus bar charts and radar charts. The Clay Index and BSI are your most honest cross-site numbers because they don't change with season. NDVI/NDRE/NDMI are date-sensitive — Arkadia2 (May) will look greener simply because it was imaged in growing season. The script flags this explicitly in every plot title.
+03_anomaly_ml.py — the ML core. The autoencoder trains on pooled pixels from all 4 sites, learns "what does this kind of land look like spectrally," then scores every pixel by reconstruction error. High error = anomalous. It runs both RX (classical) and AE (neural) in parallel and produces an agreement map where both detectors flag the same pixel — those are your high-confidence anomalies. The final output is a leaderboard with a sensitivity sweep showing how stable the ranking is across different weight choices. That sweep is the thing to show judges.
+On the date problem for the pitch: frame it as a feature not a bug — "we have Arkadia2 during active growing season, which gives us the richest vegetation signal. For the dry-season sites, we lean on the soil and anomaly channels, which are date-invariant by design. This is how professional remote sensing workflows handle sparse temporal coverage."
+Run order: python 01_explore_data.py → look at the plots → python 02_indices_maps.py → python 03_anomaly_ml.py. The A40 will train the AE in about 10–15 seconds.
+
+
+
+
+
+============================================================================================================================================================================================================================
+
+Everything is working correctly. Let me walk through each image and explain exactly what you're seeing, then address your three questions.
+
+Image 1 — Quality Masks
+What you're seeing: White = valid pixel, Blue = nodata/masked pixel. The blue is appearing as borders/edges on each site, not scattered randomly.
+Why the border effect: When the HuggingFace tool clips a 250m buffer around your point, it intersects a rectangular satellite swath grid with your requested boundary. The edge pixels only partially overlap — maybe 60% of that 30m×30m ground square is inside your requested area. EnMAP fills those partial-overlap pixels with -9999 nodata. It's not a problem with the data — it's physically correct. You're just seeing the edge of the clip window.
+Magnisia is notable: It has a noticeably larger blue border than the others, meaning more edge pixels are flagged. This matches its lower valid pixel count (79% vs 89–94% for the others). You'll see why in image 2.
+
+Image 2 — True Colour RGB (what you'd see from a plane window)
+This is the most physically meaningful image. Read each site:
+Arkadia (Oct 2024) — orange/brown: Classic harvested Greek farmland in autumn. Crops are gone, bare soil exposed. The orange-brown is the spectral fingerprint of dry Mediterranean soil — iron oxides giving that reddish tone. Internally fairly uniform, which is a good sign.
+Arkadia2 (May 2024) — greens: Active crop growth. Different shades of green = different fields at different stages, or different crop types. The spatial variation is real agriculture. This is what you want to see — the site is biologically active.
+Magnisia (Oct 2024) — the suspicious one: See those bright white patches in the upper-center area? In a true-colour image, white means extremely high reflectance in red, green, AND blue simultaneously. Candidates: exposed limestone/chalk bedrock, salt deposits, or plastic greenhouse coverings. None of these are great for an agricultural land investment. This site already looks anomalous visually before any ML runs.
+Veroia (Aug 2025) — bright green: Significant green vegetation in August — a month that's typically post-harvest and dry in most of Greece. This strongly suggests irrigated agriculture, which is a premium land characteristic. Veroia (in Macedonia) sits near major irrigation infrastructure. This is the most positive first impression.
+
+Image 3 — False Colour Composite (NIR/Red/Green → R/G/B)
+Why everything looks red: You've mapped the NIR band (~860nm) to the red display channel. Both bare soil AND vegetation reflect NIR strongly — it's not exclusive to plants the way green colour is. So nearly all land surfaces appear red here.
+What to look for instead: The intensity of red and the dark patches. The dark/near-black patches in Arkadia and Magnisia are areas with very low NIR reflectance — possible shadows, very dark mineral surfaces, or moisture-saturated soil. In Magnisia, the white areas from image 2 now appear cyan/white in false colour, which confirms they have an unusual spectral shape (high reflectance across all visible wavelengths but different NIR behaviour).
+Arkadia2 and Veroia are uniformly bright red = consistent, high NIR reflectance across the plot = healthy active vegetation cover.
+
+Image 4 — Mean Spectra (THE KEY DIAGNOSTIC PLOT)
+Why the right half is empty — this is a matplotlib bug, not missing data. The tight_layout() call failed (you saw the warning). When that happens, matplotlib can't recalculate subplot positions and the axes stay in their default layout, which only fills the left portion of the figure. The SWIR data IS there — image 6 proves it by showing spectra all the way to 2445nm.
+What the left half (420–1050nm) is telling you — this is real and important:
+The four curves rank themselves clearly even just in the VNIR:
+
+Veroia (purple) is highest of all by far, with a massive NIR plateau peaking around 0.45–0.50. This is the textbook signature of dense healthy vegetation. The red-edge jump at ~700nm is sharp and steep.
+Arkadia2 (green) is second, with a clear but lower NIR plateau — good active vegetation but less dense or at an earlier growth stage than Veroia.
+Magnisia (blue) shows a moderate NIR rise but with the highest variance (the line is less smooth) — confirming spatial mixing between the anomalous white areas and normal soil.
+Arkadia (orange) is lowest in NIR — dry bare soil, no vegetation contribution. This is expected for October.
+
+
+Image 5 — Per-Band Spatial Variance
+Terminology: "Spatial variance at wavelength X" means: how different are the pixels from each other, when you look only at band X? High variance = that wavelength can distinguish between pixels = it carries information. Low variance = all pixels look the same at that wavelength = not useful for discrimination.
+What to read here:
+
+Magnisia (blue) dominates in visible wavelengths (400–700nm) — the white patches vs dark soil creates enormous pixel-to-pixel differences in visible light. This site is internally the most heterogeneous, which in an investment context means unpredictable mixed land use.
+Veroia (purple) spikes sharply at the red-edge (~720nm) — this wavelength is where vegetation transitions from absorbing to reflecting. High variance here means strong spatial structure in the vegetation signal = the plot has real agricultural pattern (different crop intensities).
+The stitch zone (grey, 850–1000nm) shows artificial variance spikes from detector noise — the wiggly oscillations you see in all curves there are not real signal, which is exactly why we drop those bands.
+The red absorption zones (pink) show near-zero variance — the atmosphere has absorbed the signal, every pixel looks identical (all noise), confirming they must be dropped.
+SWIR variance (>1000nm): Arkadia2 (green) rises significantly around 1600–2200nm, which is where soil moisture and clay minerals contribute. This is one of your richest analysis regions.
+
+
+Image 6 — Individual Pixel Spectra
+Terminology: Each faint coloured line = one 30m×30m pixel's full spectrum. The black line = mean of all pixels. The spread of faint lines = how different pixels are from each other = spatial heterogeneity.
+Arkadia (orange, tight bundle): Very little spread between pixels. This site is internally uniform — mostly the same dry soil everywhere. The mean spectrum shows the classic dry Mediterranean soil shape: low visible reflectance (~0.05–0.10), gradual NIR rise to ~0.25, then broad SWIR reflectance. Uniform = predictable = low operational risk, but boring.
+Arkadia2 (green, wide spread): Large spread of individual spectra, especially in the NIR. Some pixels have the full "plant" shape (sharp red-edge jump, high NIR plateau), others are more soil-like. This is normal agricultural heterogeneity during growing season — different fields, different crop densities.
+Magnisia (blue, very wide spread): The widest spread by far. Some pixels have completely different shapes from others. The mean (black) is an average of very different things, making it less meaningful. This is the anomalous mixing of the white patches + normal soil.
+Veroia (purple, tight + high): Tight bundle positioned high, with the clearest vegetation shape of all four. Most pixels agree with each other AND they all show strong vegetation signal. High NIR plateau ~0.40–0.50, clear red-edge, then the characteristic SWIR moisture features. This is what productive, uniformly-managed agricultural land looks like spectrally.
+
+Your Three Questions Answered Directly
+Dead border areas: Edge pixels of the satellite clip — physically correct, not a data problem. Every satellite product has these.
+Mean spectra right half empty: Matplotlib layout bug from failed tight_layout. The SWIR data exists (image 6 proves it). Fix below.
+Text overlaps: The annotation positions in the spectra plot need adjustment. Also fixed below.Created a file, read a fileCreated a file, read a file
+Early Investment Signal (before any ML)
+Just from these six plots, you can already read a preliminary ranking:
+Veroia — strongest first impression. Dense uniform vegetation in August = irrigated land. Tight pixel bundle = consistent land use. High NIR = productive. The fact that it's green in late summer when the rest of Greece is dry is a premium signal.
+Arkadia2 — healthy active vegetation in May (growing season), spatially varied = mixed crop agriculture. Normal and solid.
+Arkadia — dry October scene, internally uniform, nothing alarming. Can't judge vegetation but soil looks clean.
+Magnisia — the outlier with concerns. Those white patches in the true-colour image are unexplained anomalies. Highest spatial variance = heterogeneous mixed land. Something unusual is happening in part of this plot — script 03's anomaly detector will quantify exactly how unusual.
+When you run script 02, the spectra plot will now show the full 420–2445nm range correctly on both panels without text overlap.
+
+
+============================================================================================================================================================================================================================
+
+
+
+Savitzky-Golay Smoothing
+Imagine you measure temperature every second for an hour but your thermometer has random jitter — the real temperature is a smooth curve but your readings jump up and down slightly around it. You want to remove the jitter without distorting the real trend.
+Simple moving average would work, but it smears everything — a sharp peak in your data gets flattened and shifted because you're just averaging neighbours equally.
+Savitzky-Golay does something smarter: instead of averaging, it takes a small window of consecutive points (say 9 bands) and fits a polynomial curve through them using least squares. Then it replaces the centre point with what the polynomial predicts there. Slide the window one step, repeat.
+The key insight is that real spectral features have smooth polynomial shape — the red-edge is an S-curve, absorption dips are smooth valleys. Noise is random and doesn't fit a polynomial. So fitting a polynomial through a local window naturally keeps the real shape and discards the random jitter.
+Visually, if your raw spectrum looks like this:
+Real signal + noise:   /\/\/\___/\/\/\___
+After SG smoothing:    /      \_/        \___
+The two parameters you set are:
+
+Window length (we use 9 bands) — how many neighbouring bands to include. Too small = doesn't smooth enough. Too large = starts distorting real features.
+Polynomial order (we use 2) — degree of the polynomial fitted. Order 2 = parabola. Higher order follows sharper features but also follows noise more.
+
+For hyperspectral data at EnMAP's resolution (224 bands over 2000nm), window=9 and order=2 is standard — it removes instrument noise while keeping the red-edge slope, water absorption dips, and clay features intact.
+
+How to Read the Script 02 Plots Yourself
+The spatial index maps (idx_NDVI_maps.png, idx_NDRE_maps.png, etc.)
+Each file shows four panels side by side — one per site. Each panel is an 18×18 grid of pixels where colour = index value. Grey pixels = nodata (border edge pixels you already know about).
+What to look at in any index map:
+1. Overall colour — is the site warm or cool on the scale?
+The colorbar is on the right. Find where most of your site's pixels sit on that scale. For NDVI with RdYlGn (red=bad, green=good): a mostly green panel = healthy vegetation. Mostly red = bare soil.
+2. Uniformity — is the colour consistent or patchy?
+A site where every pixel is the same shade = uniform land. A site with half dark-red and half bright-green pixels = mixed land use, higher risk. This is one of your investment axes.
+3. The number under each panel — μ and σ
+μ (mu) = mean value across all valid pixels = the average condition of the plot.
+σ (sigma) = standard deviation = how spread out the pixel values are. Large σ = heterogeneous plot.
+4. Grey spatial pattern — where are the anomalies?
+Even before running the ML detector, index maps often show suspicious isolated pixels — one bright yellow pixel in a sea of green, or a cluster of red in an otherwise healthy NDVI map. Note where those are. The anomaly script will quantify them.
+
+Specific index: what colour means what
+IndexColormapWhat colour meansNDVIRed→Yellow→GreenGreen = dense healthy vegetation. Red = bare soil, rock, urban.NDRERed→Yellow→GreenSame as NDVI but more sensitive. If NDVI is saturated at ~0.8, NDRE still separates high-biomass pixels.NDMIRed→Yellow→BlueBlue = wet/moist. Red = dry.BSIGreen→Yellow→Red (reversed)Green = vegetated (low bare soil). Red = lots of exposed soil. Complement of NDVI.ClayYellow→Orange→RedYellow = low clay content. Red = clay-rich soil. Clay is a risk factor — swells wet, cracks dry.
+
+The summary bar chart (summary_bar_chart.png)
+Five panels, one per index. Each panel shows four bars — one per site. Bar height = site mean. Error bar (the thin line sticking up and down from each bar) = ±1 standard deviation = spatial spread within the site.
+How to read it:
+
+The bar tells you the average condition
+The error bar tells you how consistent that condition is
+Tall bar + short error bar = site strongly expresses this property AND is uniform about it (best)
+Tall bar + long error bar = site has this property on average but some pixels deviate a lot (mixed)
+Short bar + short error bar = site consistently lacks this property (could be bad or just seasonal)
+
+For NDVI specifically: remember Arkadia2 (May) will dominate because of date, not necessarily because it's better land. Look at BSI and Clay bars for the most honest cross-site comparison.
+
+The uniformity CV chart (uniformity_cv.png)
+CV = Coefficient of Variation = σ/μ. It answers: "relative to the average value, how much do pixels vary?"
+A site with NDVI mean=0.6 and σ=0.1 has CV=0.17 (17% variation).
+A site with NDVI mean=0.2 and σ=0.1 has CV=0.50 (50% variation — same absolute spread but much more significant relative to the low mean).
+Lower CV = more uniform = better investment (predictable land behaves predictably).
+Read it as: which bar is shortest? That site is most internally consistent for that index. If Magnisia has the tallest NDVI bar in this chart, it confirms what we saw visually — the white patches make it spatially chaotic.
+
+The radar charts (radar_charts.png)
+Four spider/radar plots, one per site. Each axis of the spider represents one metric, normalised 0–1 within the four-site range (so the best site on each axis gets 1.0, the worst gets 0.0).
+How to read it:
+
+Larger filled area = better overall profile
+If one axis is very short (close to centre) = that site is worst among the four on that dimension
+If all axes are long = this site wins everywhere
+
+Important: these are normalised within your 4-site range. If all four sites are terrible, the "best" still gets 1.0. The radar tells you relative ranking, not absolute quality.
+The axes are: NDVI, NDRE, NDMI, Uniformity (1−CV), and inverse Clay (so higher = less clay = better).
+
+Reading all of them together — the mental model
+Treat the five index maps as five different lenses looking at the same land:
+NDVI + NDRE  →  How much productive vegetation?
+NDMI         →  Is there water in the system?
+BSI          →  How much bare degraded soil?
+Clay         →  Is there a hidden soil risk?
+A high-quality agricultural plot should score: high NDVI/NDRE, moderate-high NDMI, low BSI, low Clay — and do all of this uniformly across its 18×18 pixels. The radar chart is just that five-axis statement collapsed into one picture.
+When you open the plots, go in this order: radar chart first (get the overall picture), then bar chart (check the numbers), then individual index spatial maps (find where within each site the anomalies live). Save the CV chart for last — it confirms whether the bar chart means means are clean or mixed.

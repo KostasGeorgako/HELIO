@@ -1,0 +1,2688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HELIO · Beyond RGB</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@18.3.1",
+    "react/jsx-runtime": "https://esm.sh/react@18.3.1/jsx-runtime",
+    "react-dom": "https://esm.sh/react-dom@18.3.1?deps=react@18.3.1",
+    "react-dom/client": "https://esm.sh/react-dom@18.3.1/client?deps=react@18.3.1",
+    "recharts": "https://esm.sh/recharts@2.12.7?deps=react@18.3.1,react-dom@18.3.1",
+    "lucide-react": "https://esm.sh/lucide-react@0.383.0?deps=react@18.3.1"
+  }
+}
+</script>
+
+<style>
+  :root { --bg: #1a1919; }
+  body { font-family: 'Geist', -apple-system, system-ui, sans-serif; background: var(--bg); margin: 0; color: #e7e5e4; }
+  .bg-base { background: var(--bg); }
+  .bg-base-card { background: #161514; }
+  .font-display { font-family: 'Geist', sans-serif; font-weight: 600; letter-spacing: -0.035em; }
+  .font-mono    { font-family: 'Geist Mono', ui-monospace, monospace; }
+
+  /* Spectral gradient bar */
+  .spec-bar { background: linear-gradient(90deg, #8b80f9 0%, #4f9eff 20%, #52c41a 40%, #f5c842 60%, #ef6c4d 80%, #b03030 100%); }
+
+  /* Pulse halo for loading icon */
+  @keyframes halo { 0%,100%{ transform:scale(1); opacity:.7 } 50%{ transform:scale(1.15); opacity:.3 } }
+  .halo { animation: halo 1.8s ease-in-out infinite; }
+
+  /* Slow ambient gradient drift behind the landing hero */
+  @keyframes drift {
+    0%,100% { transform: translate(0,0) scale(1); }
+    33%     { transform: translate(3%, -2%) scale(1.05); }
+    66%     { transform: translate(-2%, 3%) scale(0.97); }
+  }
+  .drift-a  { animation: drift 22s ease-in-out infinite; }
+  .drift-b  { animation: drift 28s ease-in-out infinite reverse; }
+
+  /* Logo halo for the hero — slow rotating glow */
+  @keyframes spin-slow { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+  .spin-slow { animation: spin-slow 30s linear infinite; }
+
+  /* Reveal animation for the results winner card */
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .rise   { animation: rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .rise-1 { animation: rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both; }
+  .rise-2 { animation: rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.6s both; }
+  .rise-3 { animation: rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.9s both; }
+  .rise-4 { animation: rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) 1.2s both; }
+  .rise-5 { animation: rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) 1.5s both; }
+
+  /* "Composing recommendation" interstitial */
+  @keyframes typewriter-cursor { 0%,49% { opacity: 1 } 50%,100% { opacity: 0 } }
+  .cursor-blink { animation: typewriter-cursor 1s infinite; }
+
+  /* Caret blink */
+  @keyframes blink { 0%,49%{ opacity:1 } 50%,100%{ opacity:0 } }
+  .caret { animation: blink 1s infinite; }
+
+  /* Subtle inset glow on focus */
+  textarea:focus, input:focus { outline: none; box-shadow: 0 0 0 1px #44403c, inset 0 0 24px rgba(239,108,77,0.06); }
+
+  /* File drop pulse */
+  @keyframes dropPulse { 0%,100%{ border-color:#44403c } 50%{ border-color:#ef6c4d } }
+  .drop-pulse { animation: dropPulse 2.4s ease-in-out infinite; }
+
+  /* ── Intro splash → shooting-star handoff ───────────────────────────── */
+  @keyframes shoot {
+    0%   { transform: translate(0,0) scale(1) rotate(0);          opacity: 1; }
+    55%  { opacity: 1; }
+    100% { transform: translate(var(--sx,-44vw), var(--sy,-42vh)) scale(0.10) rotate(-24deg); opacity: 0; }
+  }
+  .shoot { animation: shoot 1.0s cubic-bezier(0.66,0,0.84,0) forwards; }
+  @keyframes cometStreak {
+    0%   { opacity: 0; transform: scaleX(0); }
+    30%  { opacity: 0.9; }
+    100% { opacity: 0; transform: scaleX(1); }
+  }
+  .comet-streak { animation: cometStreak 1.0s cubic-bezier(0.66,0,0.84,0) forwards; transform-origin: right center; }
+  @keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+  .fade-in  { animation: fadeIn 0.85s ease both; }
+  .fade-out { animation: fadeOut 0.6s ease forwards; }
+  @keyframes btnGlow { 0%,100%{ box-shadow:0 0 0 0 rgba(239,108,77,0); } 50%{ box-shadow:0 0 40px 6px rgba(239,108,77,0.32); } }
+  .btn-glow { animation: btnGlow 2.8s ease-in-out infinite; }
+
+  /* Slow reveal of the intro splash on first load */
+  .fade-in-slow { animation: fadeIn 2.4s ease both; }
+
+  /* Intro logo glare — breathes: pops out, shrinks, pulses opacity slowly */
+  @keyframes haloBreathe {
+    0%,100% { transform: scale(1);    opacity: 0.50; }
+    35%     { transform: scale(1.22); opacity: 0.80; }
+    65%     { transform: scale(0.86); opacity: 0.38; }
+  }
+  .halo-breathe { animation: haloBreathe 7s ease-in-out infinite; }
+
+  /* Intro logo glare — slow, steady rotation (noticeable but gentle) */
+  @keyframes haloSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .halo-spin { animation: haloSpin 16s linear infinite; }
+
+  /* ── Scroll-reveal: fade/pop in and out as elements enter the viewport ─ */
+  /* NB: no `will-change`/persistent transform here — that would create a
+     containing block and trap any `position: fixed` descendant (the pipeline
+     demo modal) inside the section instead of the viewport. */
+  .reveal {
+    opacity: 0; transform: translateY(34px) scale(0.985);
+    transition: opacity 0.7s cubic-bezier(0.16,1,0.3,1), transform 0.7s cubic-bezier(0.16,1,0.3,1);
+  }
+  .reveal.reveal-in { opacity: 1; transform: none; }
+
+  /* ── Pipeline demo transitions ──────────────────────────────────────── */
+  @keyframes slidePop {
+    0%   { opacity: 0; transform: scale(0.93) translateY(10px); }
+    65%  { opacity: 1; transform: scale(1.018) translateY(0); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .slide-pop { animation: slidePop 0.72s cubic-bezier(0.16,1,0.3,1) both; }
+  @keyframes captionRise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+  .caption-rise { animation: captionRise 0.65s ease both; }
+  @keyframes fillBar { from { width: 0%; } to { width: 100%; } }
+
+  /* Buttons — tactile push/pop. The transition rule is specific enough
+     (button:not(:disabled)) to override Tailwind's transition utilities
+     while still keeping colour fades. */
+  button:not(:disabled) {
+    transition: transform 0.12s cubic-bezier(0.34, 1.5, 0.64, 1),
+                background-color 0.18s ease,
+                border-color 0.18s ease,
+                color 0.18s ease,
+                box-shadow 0.18s ease;
+  }
+  button:active:not(:disabled) { transform: scale(0.92); }
+
+  /* When the cursor cloud is on, hide the real OS pointer everywhere. */
+  body.hide-cursor, body.hide-cursor * { cursor: none !important; }
+
+  #root:empty::before {
+    content: "initialising…";
+    display:block; color:#5a544a; font-family:'Geist Mono',monospace;
+    font-size:11px; letter-spacing:.2em; text-transform:uppercase;
+    padding:40vh 0; text-align:center;
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-type="module" data-presets="react">
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createRoot } from 'react-dom/client';
+import { createPortal } from 'react-dom';
+import {
+  Upload, Send, Loader2, Satellite, MapPin, AlertCircle, Sparkles, ArrowRight,
+  Check, Wifi, WifiOff, Volume2, VolumeX, MousePointer2, SlidersHorizontal,
+} from 'lucide-react';
+import {
+  RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
+  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, Cell,
+} from 'recharts';
+
+// ── Config ────────────────────────────────────────────────────────────────
+const API = 'http://localhost:5050';
+
+// Timing knobs for the "composing recommendation" interstitial (page 3).
+// COMPOSING_DURATION_MS — how long the loading screen lingers before results.
+// COMPOSING_FADE_MS     — cross-fade length when handing off to the results page.
+const COMPOSING_DURATION_MS = 10000;
+const COMPOSING_FADE_MS = 650;
+
+const DISPLAY = {
+  arkadia: 'Arkadia', arkadia2: 'Arkadia 2',
+  magnisia: 'Magnisia', veroia: 'Veroia',
+};
+// Refined, muted site palette — earthy and desaturated so the charts read
+// as analytical rather than primary-colour bright.
+const COLOR = {
+  arkadia:  '#8f8bc4',  // soft periwinkle
+  arkadia2: '#c7a667',  // muted bronze/gold
+  magnisia: '#6f9e84',  // sage green
+  veroia:   '#c47e5a',  // muted terracotta
+};
+
+const STAGE_LABELS = {
+  queued:     'Queued',
+  exploring:  'Exploring spectral data',
+  indexing:   'Computing spectral indices',
+  training:   'Training anomaly model',
+  evaluating: 'Evaluating model',
+  complete:   'Complete',
+  error:      'Error',
+};
+
+// ── Tiny primitives ───────────────────────────────────────────────────────
+const Pill = ({ children, className = '' }) => (
+  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] tracking-wider uppercase font-mono ${className}`}>
+    {children}
+  </span>
+);
+
+const SpecBar = () => <div className="h-[3px] w-full spec-bar" />;
+
+// ── HELIO logo: stylised sun / spectrum mark ──────────────────────────────
+const HelioLogo = ({ size = 16, className = '' }) => (
+  <svg viewBox="0 0 32 32" width={size} height={size} className={className}>
+    <defs>
+      <linearGradient id="helio-grad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%"   stopColor="#f5c842" />
+        <stop offset="50%"  stopColor="#ef6c4d" />
+        <stop offset="100%" stopColor="#8b80f9" />
+      </linearGradient>
+    </defs>
+    {/* radiating rays — spectrum colours */}
+    {[
+      ['#8b80f9', 0],   ['#4f9eff', 45],  ['#52c41a', 90],
+      ['#f5c842', 135], ['#ef6c4d', 180], ['#b03030', 225],
+      ['#4f9eff', 270], ['#52c41a', 315],
+    ].map(([color, deg], i) => (
+      <line key={i} x1="16" y1="16" x2="16" y2="2.5" stroke={color}
+        strokeWidth="2" strokeLinecap="round"
+        transform={`rotate(${deg} 16 16)`} opacity="0.85" />
+    ))}
+    <circle cx="16" cy="16" r="5.5" fill="url(#helio-grad)" />
+    <circle cx="16" cy="16" r="5.5" fill="none" stroke="#1a1919" strokeWidth="1.5" />
+  </svg>
+);
+
+const BrandPill = ({ children = "HELIO" }) => (
+  <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] tracking-[0.18em] uppercase font-mono bg-stone-900/60 text-stone-300 border border-stone-800">
+    <HelioLogo size={13} />
+    {children}
+  </span>
+);
+
+// ── Scroll-reveal wrapper: fades/pops children in and out of the viewport ──
+function Reveal({ children, className = '' }) {
+  const ref = useRef(null);
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([e]) => setShown(e.isIntersecting),
+      { threshold: 0.12, rootMargin: '0px 0px -8% 0px' },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return (
+    <div ref={ref} className={`reveal ${shown ? 'reveal-in' : ''} ${className}`}>
+      {children}
+    </div>
+  );
+}
+
+// ── Audio core ────────────────────────────────────────────────────────────
+// THE AMBIENT VOLUME KNOB is `_ambientVolume` (0 = silent … 1 = full). Each
+// ambient pad registers in `_ambients` with its natural `target` level; the
+// live volume is `target * _ambientVolume`. The SettingsControl slider drives
+// it through setAmbientVolume(). Module-level so it survives unmounts.
+let _ambientVolume = 1;        // 0..1 — ambient/sound level
+const _ambients = new Set();   // each: { ctx, gain, target }
+let _uiCtx = null;
+
+function _uiAudioCtx() {
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!Ctx) return null;
+  if (!_uiCtx) _uiCtx = new Ctx();
+  if (_uiCtx.state === 'suspended') _uiCtx.resume();
+  return _uiCtx;
+}
+
+// Set the global ambient/sound level (0..1). Ramps every running pad; at 0 the
+// UI click/response cues fall silent too.
+function setAmbientVolume(v) {
+  _ambientVolume = Math.max(0, Math.min(1, v));
+  _ambients.forEach((a) => {
+    try {
+      const t = a.ctx.currentTime;
+      a.gain.gain.cancelScheduledValues(t);
+      a.gain.gain.setValueAtTime(Math.max(a.gain.gain.value, 0.0001), t);
+      a.gain.gain.exponentialRampToValueAtTime(
+        Math.max(a.target * _ambientVolume, 0.0001), t + 0.4);
+    } catch (e) { /* ignore */ }
+  });
+}
+
+// Short, sharp "futuristic" UI click — a bright transient with a fast decay.
+// Played globally on every button press.
+function playClick() {
+  if (_ambientVolume <= 0) return;
+  try {
+    const ctx = _uiAudioCtx();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+
+    // Bright body with a quick downward pitch sweep.
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = 'triangle';
+    o.frequency.setValueAtTime(1500, now);
+    o.frequency.exponentialRampToValueAtTime(640, now + 0.06);
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(0.26, now + 0.005);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + 0.085);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(now); o.stop(now + 0.1);
+
+    // Tiny high tick on top for the "sharp" snap.
+    const o2 = ctx.createOscillator();
+    const g2 = ctx.createGain();
+    o2.type = 'sine';
+    o2.frequency.value = 3300;
+    g2.gain.setValueAtTime(0.0001, now);
+    g2.gain.exponentialRampToValueAtTime(0.10, now + 0.003);
+    g2.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
+    o2.connect(g2); g2.connect(ctx.destination);
+    o2.start(now); o2.stop(now + 0.04);
+  } catch (e) { /* ignore */ }
+}
+
+// Soft "the assistant has replied" cue — three gentle ascending bell tones
+// (C5 · E5 · A5). Warmer and rounder than the click — reads as "complete".
+function playResponse() {
+  if (_ambientVolume <= 0) return;
+  try {
+    const ctx = _uiAudioCtx();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    [[523.25, 0.00], [659.25, 0.12], [880.00, 0.24]].forEach(([f, t]) => {
+      const o = ctx.createOscillator();
+      const o2 = ctx.createOscillator();
+      const g = ctx.createGain();
+      const o2g = ctx.createGain();
+      o.type = 'sine';  o.frequency.value = f;
+      o2.type = 'sine'; o2.frequency.value = f * 2;
+      o2g.gain.value = 0.14;
+      const s = now + t;
+      g.gain.setValueAtTime(0.0001, s);
+      g.gain.exponentialRampToValueAtTime(0.15, s + 0.035);
+      g.gain.exponentialRampToValueAtTime(0.0001, s + 0.6);
+      o.connect(g); o2.connect(o2g); o2g.connect(g);
+      g.connect(ctx.destination);
+      o.start(s);  o.stop(s + 0.65);
+      o2.start(s); o2.stop(s + 0.65);
+    });
+  } catch (e) { /* ignore */ }
+}
+
+// Deep "power-on" tone — a stack of sine voices that all swell in amplitude
+// together and then fade back out.
+//
+// Fully tunable: each voice in INIT_TONE_VOICES is independent — add, remove
+// or retune them freely. `delay` offsets a voice's entry within the envelope.
+const INIT_TONE_DURATION = 2.5;   // total length in seconds (swell + hold + fade)
+const INIT_TONE_LOWPASS  = 340;   // master low-pass cutoff (Hz) — keeps it warm
+const INIT_TONE_SWELL    = 0.45;  // fraction of duration spent swelling up
+const INIT_TONE_HOLD     = 0.58;  // fraction of duration before the fade starts
+const INIT_TONE_VOICES = [
+  { freq: 150, gain: 0.45, type: 'sine',     delay: 0.0 },  // base voice
+  { freq: 300,  gain: 0.34, type: 'sine',     delay: 0.0 },  // sub-octave — body
+  { freq: 60, gain: 0.15, type: 'sine',     delay: 0.12 }, // fifth above — warmth
+  { freq: 206, gain: 0.08, type: 'triangle', delay: 0.26 }, // octave shimmer
+];
+
+function playInitChime() {
+  if (_ambientVolume <= 0) return;
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    const now = ctx.currentTime;
+    const dur = INIT_TONE_DURATION;
+
+    // Shared low-pass so the stack stays warm rather than buzzy.
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = INIT_TONE_LOWPASS;
+    lp.connect(ctx.destination);
+
+    INIT_TONE_VOICES.forEach((v) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = v.type || 'sine';
+      osc.frequency.value = v.freq;
+
+      const t0   = now + (v.delay || 0);
+      const peak = Math.max(v.gain, 0.0002);
+      // Envelope: silent → swell up → hold → fade out.
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(peak, now + dur * INIT_TONE_SWELL);
+      gain.gain.setValueAtTime(peak, now + dur * INIT_TONE_HOLD);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+
+      osc.connect(gain); gain.connect(lp);
+      osc.start(t0); osc.stop(now + dur + 0.1);
+    });
+  } catch (e) { /* audio blocked — silent fallback */ }
+}
+
+// The "arrival" cue — the inverse of playInitChime. Where the launch chime
+// rises in pitch and swells (going in), this one glides DOWN an octave and
+// settles (we have just arrived).
+function playArrivalChime() {
+  if (_ambientVolume <= 0) return;
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    const now = ctx.currentTime;
+    const dur = INIT_TONE_DURATION;
+
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = INIT_TONE_LOWPASS;
+    lp.connect(ctx.destination);
+
+    INIT_TONE_VOICES.forEach((v) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = v.type || 'sine';
+
+      const t0 = now + (v.delay || 0);
+      // Pitch glides downward (octave above → base frequency).
+      osc.frequency.setValueAtTime(v.freq * 2, t0);
+      osc.frequency.exponentialRampToValueAtTime(v.freq, now + dur);
+
+      const peak = Math.max(v.gain, 0.0002);
+      // Mirrored envelope: quick bloom, long gentle settle.
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(peak, t0 + 0.18);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+
+      osc.connect(gain); gain.connect(lp);
+      osc.start(t0); osc.stop(now + dur + 0.1);
+    });
+  } catch (e) { /* audio blocked — silent fallback */ }
+}
+
+// Dark, mysterious ambient drone for the intro menu — a low, slightly detuned
+// string-like pad with slow filter movement and gentle vibrato. Sustains until
+// stop() is called. Returns { stop }.
+const AMBIENT_VOICES = [
+  { freq: 55.0,  type: 'sawtooth', gain: 0.50, detune: -6 },  // A1
+  { freq: 55.0,  type: 'sawtooth', gain: 0.50, detune:  7 },  // A1 (detuned twin)
+  { freq: 82.41, type: 'triangle', gain: 0.30, detune:  0 },  // E2 — a fifth
+  { freq: 110.0, type: 'sawtooth', gain: 0.18, detune: -4 },  // A2
+];
+
+function startAmbientDrone() {
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!Ctx) return { stop: () => {} };
+  try {
+    const ctx = new Ctx();
+    const now = ctx.currentTime;
+
+    const DRONE_TARGET = 0.06;  // kept low — the intro ambience must not intrude
+    const master = ctx.createGain();
+    master.gain.setValueAtTime(0.0001, now);
+    master.gain.exponentialRampToValueAtTime(
+      Math.max(DRONE_TARGET * _ambientVolume, 0.0001), now + 4.5); // slow swell in
+    master.connect(ctx.destination);
+    const _reg = { ctx, gain: master, target: DRONE_TARGET };
+    _ambients.add(_reg);
+
+    // Dark low-pass — keeps the drone muffled and brooding.
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 340;
+    lp.Q.value = 4;
+    lp.connect(master);
+
+    // Very slow LFO sweeping the cutoff — the "mysterious" movement.
+    const lfo = ctx.createOscillator();
+    const lfoGain = ctx.createGain();
+    lfo.frequency.value = 0.05;
+    lfoGain.gain.value = 150;
+    lfo.connect(lfoGain); lfoGain.connect(lp.frequency);
+    lfo.start(now);
+
+    // Gentle shared vibrato — a touch of violin life.
+    const vib = ctx.createOscillator();
+    const vibGain = ctx.createGain();
+    vib.frequency.value = 4.6;
+    vibGain.gain.value = 2.2; // cents
+    vib.connect(vibGain);
+    vib.start(now);
+
+    const oscs = [];
+    AMBIENT_VOICES.forEach((v) => {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = v.type;
+      o.frequency.value = v.freq;
+      o.detune.value = v.detune;
+      g.gain.value = v.gain;
+      vibGain.connect(o.detune);
+      o.connect(g); g.connect(lp);
+      o.start(now);
+      oscs.push(o);
+    });
+
+    let stopped = false;
+    const stop = () => {
+      if (stopped) return;
+      stopped = true;
+      _ambients.delete(_reg);
+      try {
+        const t = ctx.currentTime;
+        master.gain.cancelScheduledValues(t);
+        master.gain.setValueAtTime(Math.max(master.gain.value, 0.0001), t);
+        master.gain.exponentialRampToValueAtTime(0.0001, t + 1.3); // fade out
+        [...oscs, lfo, vib].forEach((o) => { try { o.stop(t + 1.5); } catch (e) {} });
+        setTimeout(() => { try { ctx.close(); } catch (e) {} }, 1800);
+      } catch (e) { try { ctx.close(); } catch (e2) {} }
+    };
+    return { stop };
+  } catch (e) {
+    return { stop: () => {} };
+  }
+}
+
+// App-wide ambient — an actual slow space melody, not a static drone.
+//
+//   · Pad   : a low A-drone bed (A2·E3·A3) washed through generated reverb,
+//             with two non-harmonic LFOs drifting the tone so it never sits still.
+//   · Melody: a hardcoded, spacious tune in A-minor pentatonic — long held
+//             notes and generous rests, rising to a peak and resolving. It
+//             loops every ~59 s, played on soft bell voices through the reverb.
+//
+// Module-level singleton: started once on "Begin", runs for the session.
+let _appAmbient = null;
+const APP_AMBIENT_TARGET = 0.042;   // gentle overall — the melody still sings
+const APP_PAD_CHORD = [
+  { f: 110.00, type: 'triangle', g: 0.12, detune: -6 },  // A2 — foundation
+  { f: 164.81, type: 'sine',     g: 0.10, detune:  7 },  // E3 — a fifth
+  { f: 220.00, type: 'sine',     g: 0.07, detune: -4 },  // A3 — octave
+];
+// Melody events: b = start beat, f = frequency (Hz), d = duration in beats.
+// A-minor pentatonic (A C D E G) — consonant over the A drone, floating arc.
+const APP_MELODY = [
+  { b:  0, f: 440.00, d: 5 },  // A4  — settle in
+  { b:  7, f: 523.25, d: 2 },  // C5
+  { b: 10, f: 659.25, d: 6 },  // E5  — held
+  { b: 18, f: 587.33, d: 2 },  // D5
+  { b: 21, f: 523.25, d: 2 },  // C5
+  { b: 24, f: 440.00, d: 6 },  // A4  — held
+  { b: 32, f: 392.00, d: 2 },  // G4
+  { b: 35, f: 523.25, d: 3 },  // C5
+  { b: 39, f: 587.33, d: 5 },  // D5  — held
+  { b: 46, f: 659.25, d: 2 },  // E5
+  { b: 49, f: 783.99, d: 5 },  // G5  — the peak
+  { b: 56, f: 659.25, d: 2 },  // E5
+  { b: 59, f: 587.33, d: 2 },  // D5
+  { b: 62, f: 523.25, d: 4 },  // C5
+  { b: 68, f: 440.00, d: 4 },  // A4  — resolve
+];
+const APP_MELODY_BEAT = 0.82;        // seconds per beat — slow & spacious
+const APP_MELODY_LOOP_BEATS = 72;
+
+function startAppAmbient() {
+  if (_appAmbient) return _appAmbient;
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return null;
+    const ctx = new Ctx();
+    const now = ctx.currentTime;
+
+    const master = ctx.createGain();
+    master.gain.setValueAtTime(0.0001, now);
+    master.gain.exponentialRampToValueAtTime(
+      Math.max(APP_AMBIENT_TARGET * _ambientVolume, 0.0001), now + 8); // slow swell in
+    master.connect(ctx.destination);
+
+    // Generated reverb (decaying-noise impulse) — the spacious "space" wash.
+    const conv = ctx.createConvolver();
+    const irLen = Math.floor(ctx.sampleRate * 3.8);
+    const ir = ctx.createBuffer(2, irLen, ctx.sampleRate);
+    for (let ch = 0; ch < 2; ch++) {
+      const d = ir.getChannelData(ch);
+      for (let i = 0; i < irLen; i++) {
+        d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / irLen, 2.6);
+      }
+    }
+    conv.buffer = ir;
+    const wet = ctx.createGain(); wet.gain.value = 0.85;
+    const dry = ctx.createGain(); dry.gain.value = 0.5;
+    conv.connect(wet); wet.connect(master);
+    dry.connect(master);
+
+    // ── Pad: low drone bed, dark low-pass drifting on two non-harmonic LFOs ──
+    const padLP = ctx.createBiquadFilter();
+    padLP.type = 'lowpass'; padLP.frequency.value = 620; padLP.Q.value = 0.7;
+    padLP.connect(conv); padLP.connect(dry);
+    [{ f: 0.021, a: 200 }, { f: 0.034, a: 130 }].forEach((L) => {
+      const lfo = ctx.createOscillator();
+      const lg = ctx.createGain();
+      lfo.frequency.value = L.f;
+      lg.gain.value = L.a;
+      lfo.connect(lg); lg.connect(padLP.frequency);
+      lfo.start(now);
+    });
+    const wob = ctx.createOscillator();
+    const wobGain = ctx.createGain();
+    wob.frequency.value = 0.05;
+    wobGain.gain.value = 5;   // cents — slow living shimmer
+    wob.connect(wobGain);
+    wob.start(now);
+    APP_PAD_CHORD.forEach((v) => {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = v.type;
+      o.frequency.value = v.f;
+      o.detune.value = v.detune;
+      wobGain.connect(o.detune);
+      g.gain.value = v.g;
+      o.connect(g); g.connect(padLP);
+      o.start(now);
+    });
+
+    // ── Melody: soft bell voices through a brighter path into the reverb ──
+    const melLP = ctx.createBiquadFilter();
+    melLP.type = 'lowpass'; melLP.frequency.value = 2600; melLP.Q.value = 0.6;
+    const melBus = ctx.createGain(); melBus.gain.value = 0.9;
+    melLP.connect(melBus); melBus.connect(conv); melBus.connect(dry);
+
+    const melodyNote = (freq, start, durSec) => {
+      const o  = ctx.createOscillator();
+      const o2 = ctx.createOscillator();          // faint octave shimmer
+      const g  = ctx.createGain();
+      const o2g = ctx.createGain();
+      o.type  = 'sine'; o.frequency.value  = freq;
+      o2.type = 'sine'; o2.frequency.value = freq * 2;
+      o2g.gain.value = 0.16;
+      g.gain.setValueAtTime(0.0001, start);
+      g.gain.exponentialRampToValueAtTime(0.24, start + 0.2);   // soft bloom
+      g.gain.exponentialRampToValueAtTime(0.0001, start + durSec + 0.7);
+      o.connect(g); o2.connect(o2g); o2g.connect(g);
+      g.connect(melLP);
+      o.start(start);  o.stop(start + durSec + 0.8);
+      o2.start(start); o2.stop(start + durSec + 0.8);
+    };
+
+    const loopDur = APP_MELODY_LOOP_BEATS * APP_MELODY_BEAT;
+    const scheduleLoop = (loopStart) => {
+      APP_MELODY.forEach((n) => {
+        melodyNote(n.f, loopStart + n.b * APP_MELODY_BEAT, n.d * APP_MELODY_BEAT);
+      });
+    };
+    // Keep at least one full loop scheduled ahead — robust to timer jitter.
+    let nextLoopAt = now + 3;
+    const pump = () => {
+      while (nextLoopAt < ctx.currentTime + loopDur) {
+        scheduleLoop(nextLoopAt);
+        nextLoopAt += loopDur;
+      }
+    };
+    pump();
+    setInterval(pump, 5000);
+
+    const reg = { ctx, gain: master, target: APP_AMBIENT_TARGET };
+    _ambients.add(reg);
+    _appAmbient = reg;
+    return _appAmbient;
+  } catch (e) {
+    return null;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  CURSOR CLOUD  (soft particle swarm around the pointer)
+// ─────────────────────────────────────────────────────────────────────────
+const CURSOR_CLOUD_COLORS = ['#ef6c4d', '#f5c842', '#52c41a', '#4f9eff', '#8b80f9'];
+
+const CURSOR_SWARM = 20;
+
+function CursorCloud() {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    // The cloud replaces the pointer — hide the real OS cursor while it runs.
+    document.body.classList.add('hide-cursor');
+
+    const root = ref.current;
+    if (!root) return () => document.body.classList.remove('hide-cursor');
+    const dots = Array.from(root.children);
+    const N = dots.length;
+    const mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+    // Index 0 is the precise core (tracks the pointer exactly); 1..N is the swarm.
+    const parts = dots.map((_, i) => (i === 0
+      ? { x: mouse.x, y: mouse.y, angle: 0, radius: 0, spin: 0, ease: 0.55 }
+      : { x: mouse.x, y: mouse.y,
+          angle: (i / N) * Math.PI * 2,
+          radius: 4 + (i % 5) * 3.4,           // tight, dense cluster
+          spin:  0.022 + (i % 5) * 0.006,
+          ease:  0.22 + (i % 5) * 0.05 }));
+    const onMove = (e) => { mouse.x = e.clientX; mouse.y = e.clientY; };
+    window.addEventListener('pointermove', onMove);
+
+    let raf;
+    const tick = () => {
+      for (let i = 0; i < N; i++) {
+        const p = parts[i];
+        p.angle += p.spin;
+        const tx = mouse.x + Math.cos(p.angle) * p.radius;
+        const ty = mouse.y + Math.sin(p.angle) * p.radius;
+        p.x += (tx - p.x) * p.ease;
+        p.y += (ty - p.y) * p.ease;
+        dots[i].style.transform = `translate(${p.x}px, ${p.y}px)`;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    tick();
+    return () => {
+      document.body.classList.remove('hide-cursor');
+      window.removeEventListener('pointermove', onMove);
+      cancelAnimationFrame(raf);
+    };
+  }, []);
+
+  return createPortal(
+    <div ref={ref} aria-hidden="true"
+         style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                  zIndex: 10002, pointerEvents: 'none' }}>
+      {/* Precise core — the actual pointer focal point */}
+      <div style={{
+        position: 'absolute', top: 0, left: 0,
+        width: 9, height: 9, marginLeft: -4.5, marginTop: -4.5,
+        borderRadius: '50%', background: '#ef6c4d',
+        boxShadow: '0 0 6px 1px rgba(239,108,77,0.7)',
+        filter: 'blur(0.4px)', opacity: 0.95,
+      }} />
+      {/* Dense swarm orbiting the core */}
+      {Array.from({ length: CURSOR_SWARM }).map((_, i) => {
+        const size = 7 - (i % 3) * 1.5;
+        return (
+          <div key={i} style={{
+            position: 'absolute', top: 0, left: 0,
+            width: size, height: size, marginLeft: -size / 2, marginTop: -size / 2,
+            borderRadius: '50%',
+            background: CURSOR_CLOUD_COLORS[i % CURSOR_CLOUD_COLORS.length],
+            filter: 'blur(1.6px)',
+            opacity: 0.5 - (i % 3) * 0.08,
+          }} />
+        );
+      })}
+    </div>,
+    document.body,
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  SETTINGS CONTROL  (expandable — ambient volume + cursor cloud, all menus)
+// ─────────────────────────────────────────────────────────────────────────
+function SettingsControl({ cursorOn, setCursorOn, ambientVol, setAmbientVol }) {
+  const [open, setOpen] = useState(false);
+  const pct = Math.round(ambientVol * 100);
+
+  return createPortal(
+    <div style={{ position: 'fixed', right: 20, bottom: 20, zIndex: 10001 }}
+         className="flex flex-col items-end gap-2">
+      {open && (
+        <div className="slide-pop w-64 bg-base-card border border-stone-800 rounded-lg p-4 shadow-2xl">
+          <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-stone-500 mb-3">
+            ambience
+          </div>
+
+          {/* Ambient volume slider */}
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="flex items-center gap-1.5 text-stone-300 text-xs">
+                {ambientVol > 0
+                  ? <Volume2 className="w-3.5 h-3.5" />
+                  : <VolumeX className="w-3.5 h-3.5" />}
+                ambient volume
+              </span>
+              <span className="font-mono text-[10px] text-stone-500 tabular-nums">{pct}%</span>
+            </div>
+            <input
+              type="range" min="0" max="100" value={pct}
+              onChange={(e) => setAmbientVol(Number(e.target.value) / 100)}
+              className="w-full cursor-pointer"
+              style={{ accentColor: '#ef6c4d' }}
+            />
+          </div>
+
+          {/* Cursor cloud toggle */}
+          <button
+            onClick={() => setCursorOn((v) => !v)}
+            className="w-full flex items-center justify-between rounded-md border border-stone-800 bg-stone-900/50 px-3 py-2 hover:border-stone-600"
+          >
+            <span className="flex items-center gap-1.5 text-stone-300 text-xs">
+              <MousePointer2 className="w-3.5 h-3.5" /> cursor cloud
+            </span>
+            <span className={`font-mono text-[10px] uppercase tracking-wider
+              ${cursorOn ? 'text-emerald-400' : 'text-stone-600'}`}>
+              {cursorOn ? 'on' : 'off'}
+            </span>
+          </button>
+          <p className="font-mono text-[9px] text-stone-600 mt-2 leading-relaxed">
+            cloud on → the pointer is the cloud · off → normal cursor
+          </p>
+        </div>
+      )}
+
+      <button
+        onClick={() => setOpen((o) => !o)}
+        title="Ambience settings"
+        className={`w-10 h-10 rounded-full border flex items-center justify-center
+          ${open ? 'border-stone-500 text-stone-100 bg-stone-800'
+                 : 'border-stone-700 text-stone-400 bg-stone-900/70 hover:text-stone-100'}`}
+      >
+        <SlidersHorizontal className="w-4 h-4" />
+      </button>
+    </div>,
+    document.body,
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  STEP 0 — INTRO SPLASH
+// ─────────────────────────────────────────────────────────────────────────
+function IntroScreen({ onStart }) {
+  const [launching, setLaunching] = useState(false);
+  const ambientRef = useRef(null);
+  const audioStartedRef = useRef(false);
+
+  // Browsers block audio until the first user gesture, so we can't autoplay on
+  // mount. On the first interaction we play the "arrival" cue (inverse of the
+  // launch chime) and start the dark ambient drone.
+  useEffect(() => {
+    const startAudio = () => {
+      if (audioStartedRef.current || launching) return;
+      audioStartedRef.current = true;
+      playArrivalChime();
+      ambientRef.current = startAmbientDrone();
+      window.removeEventListener('pointerdown', startAudio);
+      window.removeEventListener('keydown', startAudio);
+    };
+    window.addEventListener('pointerdown', startAudio);
+    window.addEventListener('keydown', startAudio);
+    return () => {
+      window.removeEventListener('pointerdown', startAudio);
+      window.removeEventListener('keydown', startAudio);
+      ambientRef.current?.stop();
+    };
+  }, [launching]);
+
+  const begin = () => {
+    if (launching) return;
+    ambientRef.current?.stop();   // fade the dark intro drone out
+    playInitChime();
+    startAppAmbient();            // start the app-wide ambient (within this gesture)
+    setLaunching(true);
+    setTimeout(onStart, 1000);    // matches the .shoot animation duration
+  };
+
+  return (
+    <div className={`min-h-screen flex flex-col items-center justify-center relative overflow-hidden ${launching ? 'fade-out' : 'fade-in-slow'}`}>
+      {/* Ambient drifting orbs */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="drift-a absolute top-1/4 left-1/4 w-[42rem] h-[42rem] rounded-full opacity-[0.16]"
+             style={{ background: 'radial-gradient(circle, #ef6c4d 0%, transparent 60%)', filter: 'blur(90px)' }} />
+        <div className="drift-b absolute bottom-1/4 right-1/4 w-[38rem] h-[38rem] rounded-full opacity-[0.12]"
+             style={{ background: 'radial-gradient(circle, #8b80f9 0%, transparent 60%)', filter: 'blur(90px)' }} />
+      </div>
+
+      <SpecBar />
+
+      <div className="relative flex-1 flex flex-col items-center justify-center px-6 w-full">
+        {/* Logo with rotating conic halo — becomes the shooting star on launch */}
+        <div className="relative w-40 h-40 mb-2">
+          {/* Comet trail, only while launching */}
+          {launching && (
+            <div className="comet-streak absolute top-1/2 right-1/2 h-[3px] w-[60vw] -translate-y-1/2 pointer-events-none"
+                 style={{ background: 'linear-gradient(270deg, #f5c842, #ef6c4d, transparent)', filter: 'blur(1px)' }} />
+          )}
+          <div className={launching ? 'shoot relative w-full h-full' : 'relative w-full h-full'}
+               style={{ '--sx': '-44vw', '--sy': '-40vh' }}>
+            {/* Glare: outer layer breathes (pop/shrink/pulse), inner rotates */}
+            <div className="absolute inset-0 halo-breathe">
+              <div className="absolute inset-0 rounded-full halo-spin"
+                   style={{ background: 'conic-gradient(from 0deg, #ef6c4d, #f5c842, #52c41a, #4f9eff, #8b80f9, #ef6c4d)',
+                            filter: 'blur(22px)' }} />
+            </div>
+            <div className="spin-slow relative w-full h-full flex items-center justify-center">
+              <HelioLogo size={150} />
+            </div>
+          </div>
+        </div>
+
+        {/* Title + start button fade away as the logo shoots off */}
+        <div className={launching ? 'fade-out flex flex-col items-center' : 'flex flex-col items-center'}>
+          <h1 className="font-display text-7xl md:text-8xl text-stone-100 tracking-tight mt-4">
+            HEL<span className="bg-gradient-to-r from-orange-400 via-amber-300 to-orange-400 bg-clip-text text-transparent">IO</span>
+          </h1>
+          <p className="font-mono text-[11px] uppercase tracking-[0.34em] text-stone-500 mt-3">
+            hyperspectral land intelligence
+          </p>
+          <p className="text-stone-400 mt-6 text-base max-w-md text-center leading-relaxed">
+            Beyond RGB — see the soil, water, mineral and anomaly
+            signals hidden in 190 bands of EnMAP data.
+          </p>
+          <button
+            onClick={begin}
+            disabled={launching}
+            className="btn-glow group mt-10 px-9 py-4 bg-stone-100 text-stone-950 rounded-sm font-mono text-sm uppercase tracking-[0.18em] hover:bg-orange-300 transition-colors flex items-center gap-3"
+          >
+            <Sparkles className="w-4 h-4" />
+            Begin Analysis
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          </button>
+        </div>
+      </div>
+
+      <SpecBar />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  STEP 1 — UPLOAD
+// ─────────────────────────────────────────────────────────────────────────
+function UploadScreen({ onUploaded, onOpenHistory }) {
+  const [busy, setBusy] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const [error, setError] = useState(null);
+  const [stage, setStage] = useState('idle'); // idle | uploading | scanning
+  const inputRef = useRef(null);
+
+  const submit = useCallback(async (file) => {
+    if (!file) return;
+    setError(null);
+    setBusy(true);
+    setStage('uploading');
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      // brief delay so 'scanning' label is visible
+      setTimeout(() => setStage('scanning'), 400);
+      const res = await fetch(`${API}/api/upload`, { method: 'POST', body: form });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || `Upload failed (${res.status})`);
+      }
+      const data = await res.json();
+      onUploaded(data);
+    } catch (e) {
+      setError(e.message || String(e));
+      setBusy(false);
+      setStage('idle');
+    }
+  }, [onUploaded]);
+
+  return (
+    <div className="min-h-screen flex flex-col relative overflow-hidden">
+      {/* Ambient drifting orbs — slow, low opacity, the gradient lives here */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="drift-a absolute -top-40 -left-40 w-[40rem] h-[40rem] rounded-full opacity-[0.18]"
+             style={{ background: 'radial-gradient(circle, #ef6c4d 0%, transparent 60%)', filter: 'blur(80px)' }} />
+        <div className="drift-b absolute top-1/3 -right-40 w-[36rem] h-[36rem] rounded-full opacity-[0.14]"
+             style={{ background: 'radial-gradient(circle, #8b80f9 0%, transparent 60%)', filter: 'blur(80px)' }} />
+        <div className="drift-a absolute -bottom-40 left-1/4 w-[32rem] h-[32rem] rounded-full opacity-[0.10]"
+             style={{ background: 'radial-gradient(circle, #f5c842 0%, transparent 60%)', filter: 'blur(80px)' }} />
+      </div>
+
+      <SpecBar />
+      <header className="relative max-w-6xl mx-auto px-6 pt-10 pb-8 w-full flex items-center justify-between">
+        <Pill className="bg-stone-900/60 text-stone-400 border border-stone-800">
+          <HelioLogo size={13} /> HELIO
+        </Pill>
+        <div className="flex items-center gap-5">
+          <button onClick={onOpenHistory}
+            className="font-mono text-[11px] text-stone-500 hover:text-stone-200 uppercase tracking-wider transition-colors">
+            Past sessions
+          </button>
+          <span className="font-mono text-[11px] text-stone-500 uppercase tracking-wider">v1.0</span>
+        </div>
+      </header>
+
+      <main className="relative flex-1 max-w-6xl mx-auto px-6 w-full flex flex-col justify-center pb-16">
+        <div className="mb-12 flex items-center gap-8 flex-wrap">
+          {/* Flashy hero logo with rotating halo and inner gradient */}
+          <div className="relative w-32 h-32 flex-shrink-0">
+            <div className="absolute inset-0 rounded-full spin-slow"
+                 style={{ background: 'conic-gradient(from 0deg, #ef6c4d, #f5c842, #52c41a, #4f9eff, #8b80f9, #ef6c4d)',
+                          filter: 'blur(18px)', opacity: 0.55 }} />
+            <div className="relative w-full h-full flex items-center justify-center">
+              <HelioLogo size={120} />
+            </div>
+          </div>
+          <div className="flex-1 min-w-[300px]">
+            <Pill className="bg-stone-900/60 text-amber-300 border border-stone-800 mb-3">
+              <span className="w-1 h-1 rounded-full bg-amber-400" /> hyperspectral land intelligence
+            </Pill>
+            <h1 className="font-display text-6xl md:text-7xl leading-[0.95] text-stone-100 tracking-tight">
+              The ground keeps<br />
+              no <span className="bg-gradient-to-r from-orange-400 via-amber-300 to-orange-400 bg-clip-text text-transparent">secrets</span>.
+            </h1>
+            <p className="text-stone-400 mt-5 text-lg max-w-2xl leading-relaxed">
+              From <span className="text-stone-200">418 nm</span> to <span className="text-stone-200">2 445 nm</span> — across <span className="text-stone-200">190 bands</span> of EnMAP hyperspectral data — HELIO surfaces the soil, water, mineral and anomaly signals that govern any land decision.
+            </p>
+          </div>
+        </div>
+
+        <div
+          className={`relative border-2 border-dashed rounded-lg p-12 transition-all backdrop-blur-sm
+            ${dragOver ? 'border-orange-500 bg-orange-500/5 scale-[1.01]' : 'border-stone-800 bg-stone-950/40'}
+            ${busy ? 'drop-pulse' : ''}`}
+          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={(e) => {
+            e.preventDefault(); setDragOver(false);
+            const f = e.dataTransfer.files?.[0];
+            if (f) submit(f);
+          }}
+        >
+          <div className="flex flex-col items-center text-center">
+            {busy ? (
+              <>
+                <div className="relative">
+                  <div className="absolute inset-0 rounded-full bg-orange-500/20 halo" />
+                  <Loader2 className="relative w-12 h-12 text-orange-400 animate-spin" />
+                </div>
+                <p className="font-display text-2xl text-stone-100 mt-6">
+                  {stage === 'uploading' ? 'Uploading…' : 'Scanning structure…'}
+                </p>
+                <p className="font-mono text-[11px] text-stone-500 uppercase tracking-wider mt-2">
+                  detecting sites and acquisitions
+                </p>
+              </>
+            ) : (
+              <>
+                <Upload className="w-12 h-12 text-stone-600" />
+                <p className="font-display text-2xl text-stone-100 mt-6">
+                  Drop your <span className="text-orange-400">.zip</span> here
+                </p>
+                <p className="text-stone-500 mt-2 text-sm">
+                  or click to browse — expect <span className="font-mono text-stone-400">enmap/&lt;site&gt;/&lt;acquisition&gt;/SPECTRAL_IMAGE.TIF</span>
+                </p>
+                <button
+                  onClick={() => inputRef.current?.click()}
+                  className="mt-6 px-6 py-2.5 bg-stone-100 text-stone-950 font-mono text-xs uppercase tracking-wider rounded-sm hover:bg-orange-300 transition-colors"
+                >
+                  Select ZIP file
+                </button>
+                <input
+                  ref={inputRef} type="file" accept=".zip" className="hidden"
+                  onChange={(e) => submit(e.target.files?.[0])}
+                />
+              </>
+            )}
+          </div>
+        </div>
+
+        {error && (
+          <div className="mt-4 flex items-start gap-3 p-4 bg-red-950/40 border border-red-900/50 rounded-sm">
+            <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-sm text-red-300">{error}</p>
+              <p className="text-[11px] text-red-400/70 font-mono mt-1">Backend at {API} — check it's running.</p>
+            </div>
+          </div>
+        )}
+      </main>
+      <SpecBar />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  STEP 2 — CHAT  (selection → usecase → run)
+// ─────────────────────────────────────────────────────────────────────────
+function ChatScreen({ uploadResult, onResults }) {
+  const [messages, setMessages] = useState([
+    { role: 'ai', text: uploadResult.first_ai_message },
+  ]);
+  const [input, setInput] = useState('');
+  const [stage, setStage] = useState('selection'); // selection | usecase | running
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const [selection, setSelection] = useState(null);
+  const [useCaseCfg, setUseCaseCfg] = useState(null);
+  const [pendingUsecase, setPendingUsecase] = useState(null);
+  const [pipelineStage, setPipelineStage] = useState('queued');
+
+  useEffect(() => {
+    // Whole page scrolls now — keep the newest message in view, above the
+    // sticky composer, by scrolling the window itself to the bottom.
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    });
+  }, [messages, busy, pipelineStage, stage]);
+
+  const send = async () => {
+    if (!input.trim() || busy) return;
+    const userMsg = input.trim();
+    setInput('');
+    setMessages(m => [...m, { role: 'user', text: userMsg }]);
+    setBusy(true); setError(null);
+
+    try {
+      const res = await fetch(`${API}/api/chat`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          session_id: uploadResult.session_id,
+          message: userMsg,
+          stage,
+        }),
+      });
+      if (!res.ok) throw new Error(`Chat failed (${res.status})`);
+      const data = await res.json();
+      setMessages(m => [...m, { role: 'ai', text: data.reply, parsed: data.parsed_action }]);
+      playResponse();   // gentle "the assistant has replied" cue
+
+      if (data.parsed_action?.type === 'selection_confirmed') {
+        setSelection(data.parsed_action);
+      }
+      if (data.parsed_action?.type === 'usecase_confirmed') {
+        setUseCaseCfg(data.parsed_action);
+      }
+
+      if (data.next_stage === 'run' && data.parsed_action) {
+        // Surface the run-mode card a couple of seconds after the reply, as a
+        // card below it — so the user reads the assistant's message first.
+        setPendingUsecase(data.parsed_action);
+        setTimeout(() => setStage('run-dialog'), 2200);
+      } else {
+        setStage(data.next_stage);
+      }
+    } catch (e) {
+      setError(e.message || String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const triggerRun = async (usecase, fast = false) => {
+    setStage('running');
+    setPipelineStage('queued');
+    try {
+      const res = await fetch(`${API}/api/run`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          session_id: uploadResult.session_id,
+          sites: selection?.sites || [],
+          prices: selection?.prices || {},
+          weights: usecase.weights,
+          anomaly_sign: usecase.anomaly_sign,
+          date_discounts: usecase.date_discounts,
+          use_case: usecase.use_case,
+          fast,
+        }),
+      });
+      if (!res.ok) throw new Error(`Run failed (${res.status})`);
+      const { job_id } = await res.json();
+      pollStatus(job_id);
+    } catch (e) {
+      setError(e.message || String(e));
+      setStage('usecase'); // allow retry
+    }
+  };
+
+  const pollStatus = (jobId) => {
+    const tick = async () => {
+      try {
+        const r = await fetch(`${API}/api/status/${jobId}`);
+        if (!r.ok) throw new Error(`Status ${r.status}`);
+        const s = await r.json();
+        setPipelineStage(s.status);
+        if (s.status === 'complete') {
+          const rr = await fetch(`${API}/api/results/${jobId}`);
+          if (!rr.ok) throw new Error(`Results ${rr.status}`);
+          const results = await rr.json();
+          onResults(results, messages);
+          return;
+        }
+        if (s.status === 'error') {
+          setError(s.error || 'Pipeline error');
+          setStage('usecase');
+          return;
+        }
+        setTimeout(tick, 1500);
+      } catch (e) {
+        setError(e.message || String(e));
+      }
+    };
+    tick();
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col fade-in">
+      {/* Sticky brand bar — stays in view as the chat scrolls the page */}
+      <div className="slide-pop sticky top-0 z-30 bg-base/95 backdrop-blur-md">
+        <SpecBar />
+        <header className="max-w-7xl mx-auto px-6 pt-5 pb-4 w-full flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <HelioLogo size={28} />
+            <div>
+              <div className="font-display text-lg text-stone-100 leading-none">HELIO</div>
+              <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-stone-500 mt-0.5">land intelligence · v1.0</div>
+            </div>
+          </div>
+          <Pill className="bg-stone-900/60 text-emerald-300 border border-stone-800">
+            <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
+            session {uploadResult.session_id}
+          </Pill>
+        </header>
+      </div>
+
+      <main className="flex-1 max-w-7xl mx-auto px-6 pb-6 pt-2 w-full grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
+        {/* Detected sites sidebar — sticks alongside the scrolling chat */}
+        <aside className="hidden lg:flex flex-col gap-3 sticky top-[92px] self-start max-h-[calc(100vh_-_112px)] overflow-y-auto pr-1"
+               style={{ scrollbarWidth: 'thin', scrollbarColor: '#3a352c transparent' }}>
+          <div className="slide-pop bg-stone-950/60 border border-stone-800 rounded-md p-4" style={{ animationDelay: '0.22s' }}>
+            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-stone-400 mb-3">Detected cohort</div>
+            <div className="space-y-2">
+              {Object.entries(uploadResult.sites_found || {}).map(([key, info]) => (
+                <div key={key} className="flex items-start gap-2.5 p-2 rounded bg-stone-900/40 border border-stone-800/60">
+                  <span className="w-1 h-8 rounded-full flex-shrink-0" style={{ background: COLOR[key] || '#888' }} />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm text-stone-200 truncate">{DISPLAY[key] || key}</div>
+                    <div className="font-mono text-[10px] text-stone-500 mt-0.5">
+                      {info.images?.length || 0} acquisition{info.images?.length === 1 ? '' : 's'}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="slide-pop bg-stone-950/60 border border-stone-800 rounded-md p-4" style={{ animationDelay: '1.0s' }}>
+            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-stone-400 mb-3">Pipeline</div>
+            <div className="space-y-1.5 text-[11px] text-stone-500 font-mono">
+              <div>EnMAP L2A · 190 bands</div>
+              <div>418 – 2 445 nm · VNIR + SWIR</div>
+              <div>RX + autoencoder anomaly</div>
+              <div>{Object.values(uploadResult.sites_found || {}).reduce((sum, info) => sum + (info.images?.length || 0), 0)} scenes in pool</div>
+            </div>
+          </div>
+        </aside>
+
+        {/* Chat column — grows with the page so the whole window scrolls */}
+        <div className="flex flex-col min-w-0">
+          <div className="flex-1 py-2 space-y-6">
+            {messages.map((m, i) => <ChatBubble key={i} message={m} />)}
+            {busy && stage !== 'running' && <Typing />}
+            {stage === 'running' && <PipelineProgress stage={pipelineStage} />}
+            {stage === 'run-dialog' && pendingUsecase && (
+              <RunModeDialog
+                selectionSites={selection?.sites || []}
+                onChoose={(fast) => triggerRun(pendingUsecase, fast)}
+                onCancel={() => setStage('usecase')}
+              />
+            )}
+          </div>
+
+          {error && (
+            <div className="mb-3 flex items-start gap-3 p-3 bg-red-950/40 border border-red-900/50 rounded-sm">
+              <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-red-300">{error}</p>
+            </div>
+          )}
+
+          {stage !== 'running' && stage !== 'run-dialog' && (
+            <div className="sticky bottom-0 border-t border-stone-800 pt-4 pb-3 bg-base/95 backdrop-blur-md">
+              <div className="flex gap-3 items-end">
+                <textarea
+                  value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); playClick(); send(); }
+                }}
+                placeholder={stage === 'selection'
+                  ? "e.g. compare Arkadia and Veroia, both at one million euros"
+                  : "e.g. I want to plant olive trees and run a small agritourism site"}
+                rows={1}
+                className="flex-1 bg-stone-950 border border-stone-800 rounded-sm px-4 py-3 text-stone-200 placeholder-stone-600 resize-none font-sans"
+                disabled={busy}
+              />
+              <button
+                onClick={send}
+                disabled={busy || !input.trim()}
+                className="px-5 py-3 bg-stone-100 text-stone-950 rounded-sm font-mono text-xs uppercase tracking-wider hover:bg-orange-300 disabled:bg-stone-800 disabled:text-stone-600 transition-colors flex items-center gap-2"
+              >
+                <Send className="w-3.5 h-3.5" /> Send
+              </button>
+            </div>
+            <p className="font-mono text-[10px] text-stone-600 uppercase tracking-wider mt-2 text-center">
+              stage · {stage} · enter to send · shift+enter for newline
+            </p>
+          </div>
+        )}
+        </div>{/* /chat column */}
+      </main>
+      <SpecBar />
+    </div>
+  );
+}
+
+const ChatBubble = ({ message }) => {
+  const isAi = message.role === 'ai';
+  return (
+    <div className={`slide-pop flex ${isAi ? 'justify-start' : 'justify-end'}`}>
+      <div className={`max-w-[80%] ${isAi ? 'text-stone-200' : 'text-stone-100'}`}>
+        {isAi && (
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />
+            <span className="font-mono text-[10px] uppercase tracking-wider text-stone-500">HELIO</span>
+          </div>
+        )}
+        <div className={`${isAi
+          ? 'bg-stone-950/60 border border-stone-800'
+          : 'bg-stone-900 border border-stone-800'} rounded-sm px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap`}>
+          {message.text}
+        </div>
+        {message.parsed?.type === 'selection_confirmed' && (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {message.parsed.sites.map(s => {
+              const price = message.parsed.prices?.[s];
+              const date = message.parsed.preferred_dates?.[s];
+              return (
+                <span key={s} className="font-mono text-[11px] px-2 py-1 rounded-md bg-stone-900 border border-stone-800 text-stone-300">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 align-middle"
+                    style={{ background: COLOR[s] || '#888' }} />
+                  {DISPLAY[s] || s}
+                  {price ? <> · €{(price/1e6).toFixed(1)}M</> : null}
+                  {date ? <> · <span className="text-stone-500">{date}</span></> : null}
+                </span>
+              );
+            })}
+          </div>
+        )}
+        {message.parsed?.type === 'usecase_confirmed' && (
+          <div className="mt-2 font-mono text-[11px] px-2.5 py-1.5 rounded-sm bg-stone-900 border border-stone-800 text-orange-300 inline-block">
+            <Sparkles className="w-3 h-3 inline mr-1.5 align-middle" />
+            interpreted: {message.parsed.use_case}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const Typing = () => (
+  <div className="slide-pop flex items-center gap-2 text-stone-500">
+    <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />
+    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+    <span className="font-mono text-[10px] uppercase tracking-wider">HELIO is thinking…</span>
+  </div>
+);
+
+const PipelineProgress = ({ stage }) => {
+  const stages = ['exploring', 'indexing', 'training', 'evaluating'];
+  const idx = stages.indexOf(stage);
+  return (
+    <div className="bg-stone-950/60 border border-stone-800 rounded-sm p-6">
+      <div className="flex items-center gap-3 mb-5">
+        <div className="relative">
+          <div className="absolute inset-0 rounded-full bg-orange-500/20 halo" />
+          <Loader2 className="relative w-5 h-5 text-orange-400 animate-spin" />
+        </div>
+        <div>
+          <h3 className="font-display text-lg text-stone-100">Running analysis</h3>
+          <p className="font-mono text-[10px] uppercase tracking-wider text-stone-500">
+            {STAGE_LABELS[stage] || stage}
+          </p>
+        </div>
+      </div>
+      <div className="space-y-2">
+        {stages.map((s, i) => {
+          const done = idx > i || stage === 'complete';
+          const current = idx === i;
+          return (
+            <div key={s} className="flex items-center gap-3 text-sm">
+              <div className={`w-5 h-5 rounded-full flex items-center justify-center
+                ${done ? 'bg-emerald-500/20' : current ? 'bg-orange-500/20' : 'bg-stone-900'}`}>
+                {done ? <Check className="w-3 h-3 text-emerald-400" />
+                  : current ? <Loader2 className="w-3 h-3 text-orange-400 animate-spin" />
+                  : <span className="w-1.5 h-1.5 rounded-full bg-stone-700" />}
+              </div>
+              <span className={`font-mono text-xs uppercase tracking-wider
+                ${done ? 'text-emerald-300' : current ? 'text-stone-200' : 'text-stone-600'}`}>
+                {STAGE_LABELS[s]}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+// Interstitial shown briefly between pipeline completion and results render,
+// so the page doesn't dump everything at once.
+const ComposingInterstitial = ({ useCase, winner, winnerColor, winnerScore }) => {
+  const lines = [
+    'aggregating per-site spectral scores',
+    'cross-checking the sensitivity sweep',
+    'ranking the cohort against your weights',
+    `framing the recommendation for "${useCase || 'analysis'}"`,
+  ];
+  const durSec = COMPOSING_DURATION_MS / 1000;
+  // Spread the checklist across the first ~78% of the dwell time.
+  const lineGap = (durSec * 0.78) / lines.length;
+  return (
+    <div className="min-h-screen flex flex-col relative overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="drift-a absolute top-1/4 left-1/4 w-[40rem] h-[40rem] rounded-full opacity-[0.10]"
+             style={{ background: 'radial-gradient(circle, #ef6c4d 0%, transparent 60%)', filter: 'blur(80px)' }} />
+        <div className="drift-b absolute bottom-1/4 right-1/4 w-[40rem] h-[40rem] rounded-full opacity-[0.10]"
+             style={{ background: 'radial-gradient(circle, #f5c842 0%, transparent 60%)', filter: 'blur(80px)' }} />
+      </div>
+      <SpecBar />
+      <div className="relative flex-1 flex items-center justify-center px-6">
+        <div className="text-center w-full max-w-md">
+          <div className="relative w-24 h-24 mx-auto mb-8">
+            <div className="absolute inset-0 rounded-full spin-slow"
+                 style={{ background: 'conic-gradient(from 0deg, #ef6c4d, #f5c842, #52c41a, #4f9eff, #8b80f9, #ef6c4d)',
+                          filter: 'blur(14px)', opacity: 0.6 }} />
+            <div className="relative w-full h-full flex items-center justify-center">
+              <HelioLogo size={88} />
+            </div>
+          </div>
+          <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-stone-500 mb-3">composing recommendation</div>
+          <div className="font-display text-3xl text-stone-100 mb-6">HELIO is preparing the result<span className="cursor-blink text-orange-400">_</span></div>
+
+          {/* Progress bar — fills exactly across the dwell time */}
+          <div className="h-1 rounded-full bg-stone-900 overflow-hidden mb-6">
+            <div className="h-full rounded-full"
+                 style={{ background: 'linear-gradient(90deg,#ef6c4d,#f5c842)',
+                          animation: `fillBar ${durSec}s linear forwards` }} />
+          </div>
+
+          <div className="space-y-1.5 mb-7">
+            {lines.map((l, i) => (
+              <div key={i} className="flex items-center gap-2 font-mono text-[11px] text-stone-500 rise"
+                   style={{ animationDelay: `${0.4 + i * lineGap}s` }}>
+                <Check className="w-3 h-3 text-emerald-400" /> {l}
+              </div>
+            ))}
+          </div>
+
+          {/* Top choice — revealed partway through the dwell */}
+          {winner && (
+            <div className="rise" style={{ animationDelay: `${(durSec * 0.55).toFixed(2)}s` }}>
+              <div className="font-mono text-[10px] uppercase tracking-[0.24em] text-stone-600 mb-2">
+                leading candidate
+              </div>
+              <div className="inline-flex items-center gap-3 px-5 py-3 rounded-md bg-stone-950/80 border border-stone-800">
+                <span className="w-1.5 h-10 rounded-full" style={{ background: winnerColor }} />
+                <div className="text-left">
+                  <div className="font-display text-2xl text-stone-100 leading-none">{winner}</div>
+                  <div className="font-mono text-[10px] uppercase tracking-wider text-stone-500 mt-1">
+                    final score · <span className="text-stone-300">{winnerScore}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+      <SpecBar />
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────
+//  STEP 3 — RESULTS
+// ─────────────────────────────────────────────────────────────────────────
+function ResultsScreen({ results, skipIntro = false, onBack, onShowChat }) {
+  const winner = results.ranking?.[0];
+  const winnerData = results.per_site?.[winner];
+  const winnerColor = COLOR[winner] || '#ef6c4d';
+  const winnerScore = ((winnerData?.final_score ?? 0) * 100).toFixed(1);
+  // skipIntro (history replay) jumps straight past the composing interstitial.
+  const [phase, setPhase] = useState(skipIntro ? 'reveal' : 'composing');
+
+  // Preload every plot image up-front so the gallery lightbox and the
+  // pipeline demo open instantly instead of fetching on first click.
+  useEffect(() => {
+    const urls = Object.values(results.plots || {})
+      .flat()
+      .map(p => p?.url)
+      .filter(Boolean);
+    urls.forEach(u => { const im = new Image(); im.src = `${API}${u}`; });
+  }, []);
+
+  useEffect(() => {
+    if (skipIntro) return;
+    const t = setTimeout(() => setPhase('fading'), COMPOSING_DURATION_MS);
+    return () => clearTimeout(t);
+  }, []);
+  useEffect(() => {
+    if (phase !== 'fading') return;
+    const t = setTimeout(() => setPhase('reveal'), COMPOSING_FADE_MS);
+    return () => clearTimeout(t);
+  }, [phase]);
+
+  if (phase === 'composing' || phase === 'fading') {
+    return (
+      <div className={phase === 'fading' ? 'fade-out' : ''}>
+        <ComposingInterstitial
+          useCase={results.use_case}
+          winner={DISPLAY[winner] || winner}
+          winnerColor={winnerColor}
+          winnerScore={winnerScore}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="fade-in min-h-screen relative overflow-hidden">
+      {/* Drifting accent glow behind the winner */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="drift-a absolute -top-32 right-1/4 w-[40rem] h-[40rem] rounded-full opacity-[0.10]"
+             style={{ background: `radial-gradient(circle, ${winnerColor} 0%, transparent 60%)`, filter: 'blur(80px)' }} />
+      </div>
+
+      <SpecBar />
+      <header className="relative max-w-7xl mx-auto px-6 pt-8 pb-6 flex items-center justify-between flex-wrap gap-3 rise">
+        <Pill className="bg-stone-900/60 text-stone-400 border border-stone-800">
+          <HelioLogo size={13} /> HELIO · {onBack ? 'Archived analysis' : 'Analysis complete'}
+        </Pill>
+        <div className="flex items-center gap-5">
+          {onShowChat && (
+            <button
+              onClick={onShowChat}
+              className="font-mono text-[10px] uppercase tracking-wider text-stone-500 hover:text-stone-200 transition-colors"
+            >
+              ◷ View conversation
+            </button>
+          )}
+          <button
+            onClick={onBack ? onBack : () => window.location.reload()}
+            className="font-mono text-[10px] uppercase tracking-wider text-stone-500 hover:text-stone-200 transition-colors"
+          >
+            {onBack ? '← Back to history' : '↺ New analysis'}
+          </button>
+        </div>
+      </header>
+
+      {/* Recommendation hero — animates in first */}
+      <Reveal>
+      <section className="relative max-w-7xl mx-auto px-6 pb-10">
+        <div className="relative overflow-hidden bg-gradient-to-br from-stone-950 via-stone-950 to-stone-900 border border-stone-800 rounded-lg p-8 md:p-10">
+          <div
+            className="absolute -top-20 -right-20 w-[28rem] h-[28rem] rounded-full blur-3xl opacity-25"
+            style={{ background: winnerColor }}
+          />
+          <div className="relative">
+            <Pill className="bg-stone-900/60 text-amber-300 border border-amber-900/50 mb-5">
+              <Sparkles className="w-3 h-3" /> Recommendation · {results.use_case}
+            </Pill>
+            <div className="flex items-baseline gap-4 flex-wrap mb-6">
+              <div className="w-1.5 h-16 rounded-full" style={{ background: winnerColor }} />
+              <h2 className="font-display text-7xl md:text-8xl text-stone-100 leading-[0.9] tracking-tight">
+                {DISPLAY[winner] || winner}
+              </h2>
+              <div className="font-mono text-xs uppercase tracking-[0.2em] text-stone-500 ml-2">
+                final score · <span className="text-stone-200">{((winnerData?.final_score ?? 0) * 100).toFixed(1)}</span>
+              </div>
+            </div>
+            <p className="text-stone-300 text-base md:text-lg leading-relaxed max-w-3xl">
+              {results.ai_narrative}
+            </p>
+          </div>
+        </div>
+      </section>
+      </Reveal>
+
+      {/* Ranking */}
+      <Reveal>
+      <section className="max-w-7xl mx-auto px-6 pb-10">
+        <SectionHeader kicker="01 · ranking" title="Cohort scorecard" sub="Click any row to inspect its score components."/>
+        <RankingList ranking={results.ranking} perSite={results.per_site} />
+      </section>
+      </Reveal>
+
+      {/* Per-site components radar */}
+      {winnerData?.components && (
+        <Reveal>
+        <section className="max-w-7xl mx-auto px-6 pb-10">
+          <SectionHeader
+            kicker="02 · breakdown"
+            title="Score components per site"
+            sub="Each axis is a hyperspectral signal, normalised across the cohort. The leader is the parcel whose mix best fits your stated use case."
+          />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <div className="bg-stone-950/60 border border-stone-800 rounded-md p-5">
+              <h3 className="font-display text-lg text-stone-100 mb-2">Radar comparison</h3>
+              <ComponentsRadar perSite={results.per_site} ranking={results.ranking} />
+            </div>
+            <div className="bg-stone-950/60 border border-stone-800 rounded-md p-5">
+              <h3 className="font-display text-lg text-stone-100 mb-2">Final scores</h3>
+              <ScoresBar perSite={results.per_site} ranking={results.ranking} />
+            </div>
+          </div>
+        </section>
+        </Reveal>
+      )}
+
+      {/* Weights used */}
+      {results.weights_used && (
+        <Reveal>
+        <section className="max-w-7xl mx-auto px-6 pb-10">
+          <SectionHeader
+            kicker="03 · weights"
+            title="What HELIO optimised for"
+            sub={`Weights inferred from your stated use case. Anomalies treated as ${results.anomaly_sign === 1 ? 'POSITIVE signals (mineral interest)' : 'NEGATIVE signals (contamination risk)'}.`}
+          />
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+            {Object.entries(results.weights_used).map(([k, v]) => {
+              const isActive = v >= 0.10;
+              const isDominant = v >= 0.40;
+              return (
+                <div key={k} className={`relative rounded-md p-3 transition-all border
+                  ${isDominant ? 'bg-orange-500/10 border-orange-500/50'
+                    : isActive ? 'bg-stone-900/80 border-stone-700'
+                    : 'bg-stone-950/40 border-stone-800/60 opacity-50'}`}>
+                  <div className="font-mono text-[9px] uppercase tracking-wider text-stone-400 mb-1">{k.replace('W_', '')}</div>
+                  <div className="font-mono text-2xl text-stone-100 tabular-nums">{(v * 100).toFixed(0)}<span className="text-stone-600 text-sm">%</span></div>
+                  <div className="h-0.5 mt-2 rounded-full bg-stone-900 overflow-hidden">
+                    <div className="h-full transition-all duration-700"
+                      style={{ width: `${v * 100}%`, background: isDominant ? '#ef6c4d' : '#a8a29e' }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+        </Reveal>
+      )}
+
+      {/* Training insights */}
+      {results.training_insights && (results.training_insights.final_train_loss != null || results.training_insights.synthetic_anomaly) && (
+        <Reveal>
+        <section className="max-w-7xl mx-auto px-6 pb-10">
+          <SectionHeader
+            kicker="04 · model"
+            title="Autoencoder training"
+            sub="The anomaly detector was trained on-the-fly on this cohort's pixels. These metrics show how well it converged."
+          />
+          <TrainingInsights data={results.training_insights} />
+        </section>
+        </Reveal>
+      )}
+
+      {/* Plot gallery */}
+      <Reveal>
+      <section className="max-w-7xl mx-auto px-6 pb-10">
+        <SectionHeader
+          kicker="05 · plots"
+          title="Pipeline output"
+          sub="Selected figures from the four-stage analysis. Click any plot to enlarge."
+        />
+        <PlotGallery plots={results.plots} />
+      </section>
+      </Reveal>
+
+      {/* Guided pipeline walkthrough */}
+      <Reveal>
+      <section className="max-w-7xl mx-auto px-6 pb-12">
+        <PipelineDemoLauncher plots={results.plots} />
+      </section>
+      </Reveal>
+
+      <section className="max-w-7xl mx-auto px-6 pb-10">
+        <div className="pt-6 border-t border-stone-800 flex items-center justify-between flex-wrap gap-4 text-[10px] font-mono uppercase tracking-wider text-stone-600">
+          <span>HELIO · Real Estate Beyond RGB · Makeathlon 2026</span>
+          <span>EnMAP · FastAPI · GitHub Models · ISENSE / ICCS</span>
+        </div>
+      </section>
+      <SpecBar />
+    </div>
+  );
+}
+
+const TrainingInsights = ({ data }) => {
+  const trainHist = data.train_history || [];
+  const valHist   = data.val_history   || [];
+  const totalEpochs = data.total_epochs || Math.max(trainHist.length, valHist.length, 1);
+  const synth = data.synthetic_anomaly || {};
+  const ratio = data.val_train_ratio;
+  const tl = data.final_train_loss;
+  const vl = data.final_val_loss;
+
+  // Combine train+val histories into recharts data
+  const chartData = trainHist.map((v, i) => ({
+    epoch: i + 1,
+    train: v,
+    val:   valHist[i] ?? null,
+  }));
+
+  // Verdict on val/train ratio
+  let verdict = { label: 'untrained', color: 'text-stone-500', bg: 'bg-stone-900' };
+  if (ratio != null) {
+    if (ratio <= 1.2)      verdict = { label: 'well-fit',       color: 'text-emerald-300', bg: 'bg-emerald-500/15' };
+    else if (ratio <= 1.5) verdict = { label: 'mild overfit',   color: 'text-amber-300',   bg: 'bg-amber-500/15' };
+    else                   verdict = { label: 'severe overfit', color: 'text-rose-300',    bg: 'bg-rose-500/15' };
+  }
+
+  const synthEntries = Object.entries(synth);
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+
+      {/* Loss curves chart */}
+      <div className="lg:col-span-3 bg-stone-950/60 border border-stone-800 rounded-md p-5">
+        <div className="flex items-baseline justify-between mb-3">
+          <div>
+            <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-stone-400">Loss curves</div>
+            <div className="font-display text-lg text-stone-100">{totalEpochs} epochs · MSE on standardised pixels</div>
+          </div>
+          <span className={`font-mono text-[10px] uppercase tracking-wider px-2 py-1 rounded ${verdict.bg} ${verdict.color}`}>
+            {verdict.label}
+          </span>
+        </div>
+        {chartData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={chartData} margin={{ top: 4, right: 8, left: -4, bottom: 4 }}>
+              <CartesianGrid strokeDasharray="2 4" stroke="#2a2520" />
+              <XAxis dataKey="epoch" stroke="#544" tick={{ fontSize: 10, fontFamily: 'Geist Mono', fill: '#888' }} label={{ value: 'epoch', position: 'insideBottom', offset: -2, fontSize: 9, fill: '#666', fontFamily: 'Geist Mono' }}/>
+              <YAxis stroke="#544" tick={{ fontSize: 10, fontFamily: 'Geist Mono', fill: '#888' }} />
+              <Tooltip contentStyle={{ background: '#0c0b08', border: '1px solid #3a352c', fontSize: 11, fontFamily: 'Geist Mono' }} />
+              <Line type="monotone" dataKey="train" stroke="#4f9eff" strokeWidth={1.5} dot={false} isAnimationActive={false} name="train" />
+              <Line type="monotone" dataKey="val"   stroke="#ef6c4d" strokeWidth={1.5} strokeDasharray="4 3" dot={false} isAnimationActive={false} name="val" />
+            </LineChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="h-[300px] flex items-center justify-center text-stone-600 font-mono text-xs">
+            no training_progress.json found
+          </div>
+        )}
+        <div className="flex gap-5 mt-2 font-mono text-[10px] uppercase tracking-wider">
+          <span className="text-stone-300"><span className="inline-block w-2 h-2 rounded-sm bg-[#4f9eff] mr-1.5 align-middle"/>train · {tl != null ? tl.toFixed(5) : '—'}</span>
+          <span className="text-stone-300"><span className="inline-block w-2 h-2 rounded-sm bg-[#ef6c4d] mr-1.5 align-middle"/>val · {vl != null ? vl.toFixed(5) : '—'}</span>
+          <span className="text-stone-500 ml-auto">val/train · {ratio != null ? ratio.toFixed(2) + '×' : '—'}</span>
+        </div>
+      </div>
+
+      {/* Architecture diagram — full width so the topology reads without zoom */}
+      <div className="lg:col-span-3 bg-stone-950/60 border border-stone-800 rounded-md p-5">
+        <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-stone-400 mb-1">Architecture</div>
+        <div className="font-display text-lg text-stone-100 mb-3">Spectral autoencoder</div>
+        <div className="max-w-3xl mx-auto">
+          <AEDiagram />
+        </div>
+        <div className="font-mono text-xs text-stone-400 text-center mt-3">
+          N → 96 → 48 → <span className="text-orange-300">24</span> → 48 → 96 → N
+        </div>
+        <div className="font-mono text-[11px] text-stone-600 text-center mt-1 leading-relaxed">
+          BatchNorm · LeakyReLU(0.1) · Dropout 0.15 (encoder only)
+        </div>
+      </div>
+
+      {/* Synthetic anomaly test panel (full row) */}
+      {synthEntries.length > 0 && (
+        <div className="lg:col-span-3 bg-stone-950/60 border border-stone-800 rounded-md p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-stone-400">Synthetic anomaly probes</div>
+              <div className="font-display text-lg text-stone-100">Sanity check on injected signatures</div>
+            </div>
+            <span className="font-mono text-[10px] text-stone-500">{synthEntries.filter(([,v]) => v).length} / {synthEntries.length} detected</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {synthEntries.map(([k, v]) => (
+              <span key={k} className={`font-mono text-[11px] px-3 py-1.5 rounded-md border
+                ${v ? 'bg-emerald-500/10 border-emerald-700/40 text-emerald-300'
+                    : 'bg-stone-900 border-stone-800 text-stone-500'}`}>
+                {v ? '✓' : '✗'} {k.replace(/_detected$/, '').replace(/_/g, ' ')}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// SVG diagram of the autoencoder topology.
+// Matches the SpectralAE class in 03_anomaly_ml.py exactly:
+//   N → Linear+BN+LReLU+Dropout → 96 → Linear+BN+LReLU+Dropout → 48 → Linear+LReLU →
+//   24 [bottleneck] →
+//   Linear+BN+LReLU → 48 → Linear+BN+LReLU → 96 → Linear → N
+const AEDiagram = () => {
+  // Generous horizontal spacing so size/role labels never collide.
+  const X0 = 30, DX = 56;
+  const layers = [
+    { n: 7, label: 'N',  sub: 'input',   color: '#a8a29e' },
+    { n: 5, label: '96', sub: 'encode',  color: '#4f9eff' },
+    { n: 4, label: '48', sub: 'encode',  color: '#4f9eff' },
+    { n: 3, label: '24', sub: 'latent',  color: '#ef6c4d' },
+    { n: 4, label: '48', sub: 'decode',  color: '#4f9eff' },
+    { n: 5, label: '96', sub: 'decode',  color: '#4f9eff' },
+    { n: 7, label: 'N',  sub: 'output',  color: '#a8a29e' },
+  ].map((L, i) => ({ ...L, x: X0 + i * DX }));
+
+  const W = X0 * 2 + DX * 6;        // 396
+  const H = 178, cyN = 86;          // neuron field centred at 86
+  const ny = (n, i) => cyN - ((n - 1) / 2) * 12 + i * 12;
+  const zX = layers[3].x;
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full">
+      <defs>
+        <radialGradient id="zglow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#ef6c4d" stopOpacity="0.4"/>
+          <stop offset="100%" stopColor="#ef6c4d" stopOpacity="0"/>
+        </radialGradient>
+      </defs>
+
+      {/* Encoder / decoder span labels — kept at the top, clear of neurons */}
+      <text x={(X0 + zX) / 2} y={13} textAnchor="middle" fill="#888" fontSize="8" fontFamily="Geist Mono" letterSpacing="2.5">ENCODER</text>
+      <text x={(zX + layers[6].x) / 2} y={13} textAnchor="middle" fill="#888" fontSize="8" fontFamily="Geist Mono" letterSpacing="2.5">DECODER</text>
+      <line x1={X0} y1={19} x2={zX} y2={19} stroke="#3a3530" strokeWidth="0.5" />
+      <line x1={zX} y1={19} x2={layers[6].x} y2={19} stroke="#3a3530" strokeWidth="0.5" />
+
+      {/* Halo behind the bottleneck */}
+      <circle cx={zX} cy={cyN} r="30" fill="url(#zglow)" />
+
+      {/* Connection lines */}
+      {layers.slice(0, -1).map((L, li) => {
+        const R = layers[li + 1];
+        return (
+          <g key={li}>
+            {Array.from({ length: L.n }).map((_, i) =>
+              Array.from({ length: R.n }).map((_, j) => (
+                <line key={`${i}-${j}`} x1={L.x} y1={ny(L.n, i)} x2={R.x} y2={ny(R.n, j)}
+                      stroke="#5a544a" strokeWidth="0.5" opacity="0.55" />
+              ))
+            )}
+          </g>
+        );
+      })}
+
+      {/* Neurons */}
+      {layers.map((L, li) => (
+        <g key={li}>
+          {Array.from({ length: L.n }).map((_, i) => (
+            <g key={i}>
+              <circle cx={L.x} cy={ny(L.n, i)} r="4" fill={L.color} opacity="0.95">
+                {L.label === '24' && (
+                  <animate attributeName="r" values="4;5.5;4" dur="2.6s" repeatCount="indefinite" begin={`${i * 0.2}s`} />
+                )}
+              </circle>
+              {L.label === '24' && (
+                <circle cx={L.x} cy={ny(L.n, i)} r="6" fill="none" stroke="#ef6c4d" strokeWidth="0.8" opacity="0.5">
+                  <animate attributeName="r" values="6;9;6" dur="2.6s" repeatCount="indefinite" begin={`${i * 0.2}s`} />
+                  <animate attributeName="opacity" values="0.5;0;0.5" dur="2.6s" repeatCount="indefinite" begin={`${i * 0.2}s`} />
+                </circle>
+              )}
+            </g>
+          ))}
+          {/* Layer size + role — stacked with comfortable line spacing */}
+          <text x={L.x} y={H - 30} textAnchor="middle" fill="#e7e5e4" fontSize="11" fontFamily="Geist Mono" fontWeight="500">{L.label}</text>
+          <text x={L.x} y={H - 17} textAnchor="middle" fill={L.label === '24' ? '#ef6c4d' : '#7a746a'} fontSize="7.5" fontFamily="Geist Mono" letterSpacing="0.5">{L.sub}</text>
+        </g>
+      ))}
+
+      {/* Single bottleneck callout — centred under the latent layer only */}
+      <text x={zX} y={H - 4} textAnchor="middle" fill="#ef6c4d" fontSize="7" fontFamily="Geist Mono" letterSpacing="1">bottleneck</text>
+    </svg>
+  );
+};
+
+const RankingList = ({ ranking, perSite }) => {
+  const [open, setOpen] = useState(null);
+  const COMPONENTS = [
+    { key: 'soil_quality',     label: 'Soil',        color: '#ef6c4d' },
+    { key: 'veg_quality',      label: 'Vegetation',  color: '#52c41a' },
+    { key: 'spatial_consist',  label: 'Consistency', color: '#4f9eff' },
+    { key: 'moisture_quality', label: 'Moisture',    color: '#8b80f9' },
+    { key: 'clay_quality',     label: 'Clay',        color: '#f5c842' },
+    { key: 'mineral_quality',  label: 'Mineral',     color: '#b03030' },
+  ];
+  return (
+    <div className="grid gap-3">
+      {ranking.map((key, i) => {
+        const s = perSite[key] || {};
+        const c = COLOR[key] || '#888';
+        const isOpen = open === key;
+        const comp = s.components || {};
+        return (
+          <button
+            key={key}
+            onClick={() => setOpen(isOpen ? null : key)}
+            className={`text-left relative rounded-md border transition-all overflow-hidden
+              ${i === 0 ? 'bg-stone-900/80 border-stone-700' : 'bg-stone-950/40 border-stone-800/60'}
+              ${isOpen ? 'border-stone-600' : 'hover:border-stone-700'}`}
+          >
+            <div className="flex items-center gap-5 p-4">
+              <span className="font-display text-4xl text-stone-700 font-light w-10 tabular-nums">{i + 1}</span>
+              <div className="w-1 h-12 rounded-full" style={{ background: c }} />
+              <div className="flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-display text-xl text-stone-100">{DISPLAY[key] || key}</span>
+                  {i === 0 && <Sparkles className="w-3.5 h-3.5 text-amber-400" />}
+                </div>
+                <div className="font-mono text-[10px] uppercase tracking-wider text-stone-500 mt-0.5">
+                  €{(s.price_eur || 0).toLocaleString()} · anomaly {((s.anomaly?.burden_raw || 0) * 100).toFixed(1)}%
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="font-mono text-3xl text-stone-100 tabular-nums">
+                  {((s.final_score || 0) * 100).toFixed(1)}
+                </div>
+                <div className="font-mono text-[10px] uppercase tracking-wider text-stone-600">score</div>
+              </div>
+            </div>
+            {isOpen && (
+              <div className="border-t border-stone-800 p-4 grid grid-cols-2 md:grid-cols-3 gap-3 bg-stone-950/60">
+                {COMPONENTS.map(({ key: ck, label, color }) => {
+                  const v = (comp[ck] ?? 0);
+                  return (
+                    <div key={ck}>
+                      <div className="flex justify-between mb-1.5">
+                        <span className="font-mono text-[10px] uppercase tracking-wider text-stone-400">{label}</span>
+                        <span className="font-mono text-[11px] text-stone-200 tabular-nums">{(v*100).toFixed(0)}</span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-stone-900 overflow-hidden">
+                        <div className="h-full transition-all duration-700"
+                          style={{ width: `${Math.max(0, Math.min(1, v))*100}%`, background: color }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+};
+
+
+const SectionHeader = ({ kicker, title, sub }) => (
+  <div className="mb-5">
+    <Pill className="bg-stone-900/60 text-stone-400 border border-stone-800 mb-2">
+      <span className="w-1 h-1 rounded-full bg-orange-400" /> {kicker}
+    </Pill>
+    <h2 className="font-display text-3xl text-stone-100 mb-1">{title}</h2>
+    {sub && <p className="text-stone-400 max-w-2xl text-sm leading-relaxed">{sub}</p>}
+  </div>
+);
+
+const ComponentsRadar = ({ perSite, ranking }) => {
+  const axes = ['soil_quality', 'veg_quality', 'spatial_consist', 'moisture_quality', 'clay_quality', 'mineral_quality'];
+  const labels = { soil_quality: 'Soil', veg_quality: 'Veg', spatial_consist: 'Consist', moisture_quality: 'Moisture', clay_quality: 'Clay', mineral_quality: 'Mineral' };
+  const data = axes.map(a => {
+    const row = { axis: labels[a] };
+    ranking.forEach(k => { row[k] = (perSite[k]?.components?.[a] ?? 0); });
+    return row;
+  });
+  return (
+    <ResponsiveContainer width="100%" height={320}>
+      <RadarChart data={data}>
+        <PolarGrid stroke="#2a2520" />
+        <PolarAngleAxis dataKey="axis" tick={{ fontSize: 11, fontFamily: 'Geist Mono', fill: '#888' }} />
+        <PolarRadiusAxis domain={[0, 1]} tick={false} axisLine={false} />
+        {ranking.map(k => (
+          <Radar key={k} name={DISPLAY[k] || k} dataKey={k}
+            stroke={COLOR[k] || '#888'} fill={COLOR[k] || '#888'} fillOpacity={0.18} strokeWidth={1.5} />
+        ))}
+        <Tooltip contentStyle={{ background: '#0c0b08', border: '1px solid #3a352c', fontSize: 11, fontFamily: 'Geist Mono' }} />
+      </RadarChart>
+    </ResponsiveContainer>
+  );
+};
+
+const ScoresBar = ({ perSite, ranking }) => {
+  const data = ranking.map(k => ({
+    name: DISPLAY[k] || k,
+    score: +(((perSite[k]?.final_score) ?? 0) * 100).toFixed(1),
+    key: k,
+  }));
+  return (
+    <ResponsiveContainer width="100%" height={320}>
+      <BarChart data={data} layout="vertical" margin={{ left: 30, right: 30, top: 10, bottom: 10 }}>
+        <CartesianGrid strokeDasharray="2 4" stroke="#2a2520" horizontal={false} />
+        <XAxis type="number" stroke="#544" domain={[0, 100]} tick={{ fontSize: 10, fontFamily: 'Geist Mono', fill: '#888' }} />
+        <YAxis type="category" dataKey="name" stroke="#544" tick={{ fontSize: 11, fontFamily: 'Geist', fill: '#aaa', fontWeight: 500 }} width={80} />
+        <Tooltip cursor={{ fill: '#1a1814' }} contentStyle={{ background: '#0c0b08', border: '1px solid #3a352c', fontSize: 11, fontFamily: 'Geist Mono' }} />
+        <Bar dataKey="score" radius={[0, 3, 3, 0]}>
+          {data.map((d, i) => <Cell key={i} fill={COLOR[d.key] || '#888'} />)}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  );
+};
+
+const PlotGallery = ({ plots }) => {
+  const sections = [
+    { key: 'explore',    label: 'Exploration', accent: '#8b80f9' },
+    { key: 'indices',    label: 'Indices',     accent: '#52c41a' },
+    { key: 'anomaly',    label: 'Anomaly',     accent: '#ef6c4d' },
+    { key: 'evaluation', label: 'Evaluation',  accent: '#f5c842' },
+  ];
+  const available = sections.filter(sec => (plots?.[sec.key] || []).filter(p => p.url).length);
+  const [active, setActive] = useState(available[0]?.key);
+  const [enlarged, setEnlarged] = useState(null);
+
+  if (!available.length) {
+    return <div className="font-mono text-xs text-stone-600 italic">no plots returned by pipeline</div>;
+  }
+  const items = (plots?.[active] || []).filter(p => p.url);
+  const activeSec = available.find(s => s.key === active);
+
+  return (
+    <>
+      {/* Tabs */}
+      <div className="flex flex-wrap gap-1 mb-4 border-b border-stone-800">
+        {available.map(sec => {
+          const count = (plots?.[sec.key] || []).filter(p => p.url).length;
+          const isActive = active === sec.key;
+          return (
+            <button
+              key={sec.key}
+              onClick={() => setActive(sec.key)}
+              className={`relative px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.18em] transition-colors
+                ${isActive ? 'text-stone-100' : 'text-stone-500 hover:text-stone-300'}`}
+            >
+              <span className="flex items-center gap-2">
+                <span className="w-1 h-1 rounded-full" style={{ background: sec.accent }} />
+                {sec.label}
+                <span className="text-stone-600">{count}</span>
+              </span>
+              {isActive && (
+                <span className="absolute bottom-[-1px] left-0 right-0 h-[2px]" style={{ background: sec.accent }} />
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Grid for active section */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        {items.map((p, i) => (
+          <button
+            key={i}
+            onClick={() => setEnlarged(p)}
+            className="block bg-stone-950/60 border border-stone-800 rounded-md overflow-hidden hover:border-stone-600 hover:shadow-lg hover:shadow-orange-500/5 transition-all group text-left"
+          >
+            <div className="bg-stone-100 p-1.5 h-40 flex items-center justify-center overflow-hidden">
+              <img src={`${API}${p.url}`} alt={p.title} loading="lazy" className="max-w-full max-h-full object-contain group-hover:scale-[1.04] transition-transform duration-300" />
+            </div>
+            <div className="p-2.5 border-t border-stone-800 flex items-center gap-1.5">
+              <span className="w-1 h-1 rounded-full" style={{ background: activeSec?.accent }} />
+              <div className="text-[11px] text-stone-300 font-mono truncate flex-1">{p.title || p.id}</div>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      {/* Lightbox */}
+      {enlarged && (
+        <div onClick={() => setEnlarged(null)}
+          className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-8 cursor-zoom-out">
+          <div className="max-w-6xl max-h-full bg-stone-100 rounded-lg p-4">
+            <img src={`${API}${enlarged.url}`} alt={enlarged.title} className="max-w-full max-h-[82vh] object-contain mx-auto" />
+          </div>
+          <p className="absolute bottom-6 text-stone-300 font-mono text-xs uppercase tracking-[0.2em]">{enlarged.title} · click anywhere to close</p>
+        </div>
+      )}
+    </>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────
+//  GUIDED PIPELINE DEMO
+// ─────────────────────────────────────────────────────────────────────────
+
+// How long the centred "entering a new stage" intro lingers before the plots
+// appear (ms). Tunable.
+const SECTION_INTRO_MS = 10000;
+
+// Ordered stages of the walkthrough, with stage-level commentary.
+const DEMO_SECTIONS = [
+  {
+    key: 'explore', label: 'Exploration', accent: '#8b80f9',
+    blurb: 'First contact with the raw hyperspectral cube — we inspect data quality, render every scene in true and false colour, and read the mean reflectance band by band.',
+  },
+  {
+    key: 'indices', label: 'Spectral Indices', accent: '#52c41a',
+    blurb: 'Physically-grounded band ratios turn 190 raw bands into interpretable maps — vegetation vigour, moisture, clay, iron-oxide and bare-soil signals.',
+  },
+  {
+    key: 'anomaly', label: 'Anomaly Detection', accent: '#ef6c4d',
+    blurb: 'Two independent detectors — the classical RX statistic and a trained spectral autoencoder — flag pixels that deviate from each site’s normal spectral fingerprint.',
+  },
+  {
+    key: 'evaluation', label: 'Evaluation', accent: '#f5c842',
+    blurb: 'Final scoring and validation — the model is stress-tested before the cohort leaderboard is committed.',
+  },
+];
+
+// Plain-language caption per figure, keyed by the plot id from the analysis scripts.
+const IMAGE_CAPTIONS = {
+  quality_masks:  'Per-pixel quality masks. White pixels are usable; blue pixels were dropped for cloud, cirrus or sensor defects before any analysis ran.',
+  rgb_truecolor:  'True-colour render (660 / 560 / 490 nm) — what the eye would see from orbit, used purely for orientation.',
+  rgb_falsecolor: 'False-colour composite with near-infrared mapped to red. Healthy vegetation glows bright; bare soil and water separate cleanly.',
+  mean_spectra:   'Mean reflectance of each site across all 190 bands. The shape of these curves drives every downstream spectral index.',
+  band_variance:  'Per-band spatial variance. Spikes mark noisy bands — confirmation that quality masking did its job.',
+  pixel_spectra:  'Individual pixel spectra (faint) against the site mean (bold) — a look at the spectral spread within each site.',
+  summary_bar:    'Every spectral index, averaged per site and placed side by side for direct comparison.',
+  uniformity:     'Coefficient of variation per index — low bars mean spatially uniform, predictable terrain.',
+  radar:          'Radar fingerprint of each site across all indices, readable at a glance.',
+  ae_loss:        'Autoencoder training loss. The curve flattening confirms the network learned each cohort’s normal spectral behaviour.',
+  rx_maps:        'RX detector output — a classical Mahalanobis-distance anomaly score. Hot pixels deviate statistically from the scene.',
+  ae_maps:        'Autoencoder anomaly maps — pixels the network cannot reconstruct, i.e. spectra unlike anything it learned as normal.',
+  agreement:      'Where the two independent detectors agree — high-confidence anomalies survive both methods.',
+  sensitivity:    'Ranking stability under a weight sweep — how often each site keeps its rank when use-case weights are perturbed.',
+  components:     'Each site’s final score decomposed into its six spectral components.',
+  leaderboard:    'The committed cohort leaderboard — the recommendation the rest of this page is built on.',
+};
+
+function captionFor(p) {
+  if (!p) return '';
+  if (IMAGE_CAPTIONS[p.id]) return IMAGE_CAPTIONS[p.id];
+  if (p.id && p.id.startsWith('idx_'))
+    return `Spatial map of the ${p.title || 'index'} — brighter regions carry a stronger signal for this index across each site.`;
+  return p.title || '';
+}
+
+// The call-to-action card near the end of the results page.
+function PipelineDemoLauncher({ plots }) {
+  const [open, setOpen] = useState(false);
+  const sections = DEMO_SECTIONS
+    .map(s => ({ ...s, items: (plots?.[s.key] || []).filter(p => p.url) }))
+    .filter(s => s.items.length);
+  if (!sections.length) return null;
+  const total = sections.reduce((n, s) => n + s.items.length, 0);
+
+  return (
+    <>
+      <div className="relative overflow-hidden rounded-lg border border-stone-800 bg-gradient-to-br from-stone-950 to-stone-900 p-7 flex flex-col md:flex-row md:items-center gap-5">
+        <div className="absolute -top-16 -right-16 w-72 h-72 rounded-full blur-3xl opacity-20"
+             style={{ background: '#ef6c4d' }} />
+        <div className="relative flex-1">
+          <Pill className="bg-stone-900/60 text-amber-300 border border-stone-800 mb-3">
+            <Sparkles className="w-3 h-3" /> guided walkthrough
+          </Pill>
+          <h3 className="font-display text-2xl text-stone-100">Demonstrate the pipeline</h3>
+          <p className="text-stone-400 text-sm mt-1.5 max-w-xl leading-relaxed">
+            Step through all {total} figures in order — exploration, then spectral indices,
+            then anomaly detection — with arrows, captions and stage-by-stage commentary.
+          </p>
+        </div>
+        <button
+          onClick={() => setOpen(true)}
+          className="btn-glow group relative flex-shrink-0 px-7 py-3.5 bg-stone-100 text-stone-950 rounded-sm font-mono text-xs uppercase tracking-[0.16em] hover:bg-orange-300 transition-colors flex items-center gap-2.5"
+        >
+          <Sparkles className="w-4 h-4" /> Demonstrate pipeline
+          <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+        </button>
+      </div>
+      {open && <PipelineDemo sections={sections} onClose={() => setOpen(false)} />}
+    </>
+  );
+}
+
+// The full-screen guided slideshow.
+function PipelineDemo({ sections, onClose }) {
+  const [si, setSi] = useState(0);
+  const [ii, setII] = useState(0);
+  const [phase, setPhase] = useState('section'); // 'section' intro | 'image'
+
+  const sec = sections[si];
+  const items = sec.items;
+  const item = items[ii];
+  const isLastSection = si >= sections.length - 1;
+  const isFirstSection = si <= 0;
+  const atEnd = isLastSection && ii >= items.length - 1;
+  const atStart = isFirstSection && ii <= 0;
+  const atSectionEnd = ii >= items.length - 1;
+
+  // The section intro lingers (centred), then hands off to the plots.
+  useEffect(() => {
+    if (phase !== 'section') return;
+    const t = setTimeout(() => setPhase('image'), SECTION_INTRO_MS);
+    return () => clearTimeout(t);
+  }, [phase, si]);
+
+  // Jump straight to any stage from the top tabs.
+  const goToSection = useCallback((k) => {
+    if (k < 0 || k >= sections.length) return;
+    setSi(k);
+    setII(0);
+    setPhase('section');
+  }, [sections.length]);
+
+  const changeSection = useCallback((dir) => {
+    const nsi = si + dir;
+    if (nsi < 0 || nsi >= sections.length) return;
+    setSi(nsi);
+    setII(dir > 0 ? 0 : sections[nsi].items.length - 1);
+    setPhase('section');
+  }, [si, sections]);
+
+  const next = useCallback(() => {
+    if (phase === 'section') { setPhase('image'); return; }
+    if (ii < items.length - 1) { setII(ii + 1); return; }
+    if (!isLastSection) changeSection(1);
+  }, [phase, ii, items.length, isLastSection, changeSection]);
+
+  const prev = useCallback(() => {
+    if (phase === 'section') { setPhase('image'); return; }
+    if (ii > 0) { setII(ii - 1); return; }
+    if (!isFirstSection) changeSection(-1);
+  }, [phase, ii, isFirstSection, changeSection]);
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape') onClose();
+      else if (e.key === 'ArrowRight') next();
+      else if (e.key === 'ArrowLeft') prev();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [next, prev, onClose]);
+
+  const arrowBtn = (disabled) =>
+    `absolute z-10 w-12 h-12 rounded-full border flex items-center justify-center transition-all ${
+      disabled ? 'border-stone-800 text-stone-700 cursor-not-allowed'
+               : 'border-stone-600 text-stone-200 hover:bg-stone-100 hover:text-stone-950 hover:scale-110'}`;
+
+  // Portal to <body> so no transformed/Reveal ancestor can trap the overlay.
+  // Critical positioning + opaque fill are set inline (not Tailwind classes)
+  // so they always apply — the results page behind is fully covered.
+  return createPortal(
+    <div
+      className="flex flex-col fade-in"
+      style={{
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+        zIndex: 9999, background: '#0b0a09',
+      }}
+    >
+      {/* Top bar — clickable stage tabs + close */}
+      <div className="flex-shrink-0 flex items-center justify-between gap-4 px-6 py-3.5 border-b border-stone-800/80">
+        <div className="flex items-center gap-2.5">
+          <HelioLogo size={20} />
+          <span className="hidden md:inline font-mono text-[10px] uppercase tracking-[0.2em] text-stone-400">
+            pipeline walkthrough
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          {sections.map((s, k) => {
+            const active = k === si;
+            return (
+              <button key={s.key} onClick={() => goToSection(k)}
+                className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border transition-all
+                  ${active ? 'border-stone-600 bg-stone-900' : 'border-transparent hover:border-stone-800'}`}>
+                <span className="w-2 h-2 rounded-full transition-all"
+                      style={{ background: active ? s.accent : '#3a352c',
+                               boxShadow: active ? `0 0 10px ${s.accent}` : 'none' }} />
+                <span className={`font-mono text-[10px] uppercase tracking-wider transition-colors
+                  ${active ? 'text-stone-100' : 'text-stone-500 group-hover:text-stone-300'}`}>{s.label}</span>
+              </button>
+            );
+          })}
+        </div>
+        <button onClick={onClose}
+          className="font-mono text-[10px] uppercase tracking-wider text-stone-500 hover:text-stone-100 transition-colors">
+          ✕ close
+        </button>
+      </div>
+
+      {/* Stage intro — calm fade-in, centred; lingers before the plots show */}
+      {phase === 'section' ? (
+        <div key={`intro-${si}`}
+             className="flex-1 min-h-0 overflow-y-auto flex flex-col items-center justify-center text-center px-8 py-10 fade-in">
+          <div className="font-mono text-[11px] uppercase tracking-[0.34em] mb-4" style={{ color: sec.accent }}>
+            Stage {si + 1} of {sections.length}
+          </div>
+          <h2 className="font-display text-5xl md:text-6xl text-stone-100 tracking-tight">
+            {sec.label}
+          </h2>
+          <p className="text-stone-400 text-base md:text-lg leading-relaxed max-w-xl mt-5">
+            {sec.blurb}
+          </p>
+          <button onClick={() => setPhase('image')}
+            className="mt-8 px-6 py-2.5 rounded-sm font-mono text-[11px] uppercase tracking-[0.16em] text-stone-950 transition-transform hover:scale-105 flex items-center gap-2"
+            style={{ background: sec.accent }}>
+            Begin stage <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+          {/* Auto-advance progress — fills across SECTION_INTRO_MS */}
+          <div className="mt-8 w-44 h-[3px] rounded-full bg-stone-900 overflow-hidden">
+            <div key={`bar-${si}`} className="h-full rounded-full"
+                 style={{ background: sec.accent,
+                          animation: `fillBar ${SECTION_INTRO_MS}ms linear forwards` }} />
+          </div>
+        </div>
+      ) : (
+        <div key={`img-${si}`} className="flex-1 min-h-0 flex flex-col fade-in">
+          {/* Plot area — image height is viewport-bounded so it never clips */}
+          <div className="flex-1 min-h-0 flex items-center justify-center relative px-4 md:px-24 py-5">
+            <button onClick={prev} disabled={atStart}
+              className={`${arrowBtn(atStart)} left-3 md:left-7`}>
+              <ArrowRight className="w-5 h-5 rotate-180" />
+            </button>
+
+            <img
+              key={`${si}-${ii}`}
+              src={`${API}${item.url}`}
+              alt={item.title}
+              className="slide-pop max-h-[calc(100vh_-_19rem)] max-w-full object-contain rounded-lg bg-stone-100 p-3"
+              style={{ boxShadow: `0 24px 70px -20px ${sec.accent}66` }}
+            />
+
+            <button onClick={next} disabled={atEnd}
+              className={`${arrowBtn(atEnd)} right-3 md:right-7`}>
+              <ArrowRight className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Caption + controls — pinned to the bottom, never overlaps the plot */}
+          <div className="flex-shrink-0 border-t border-stone-800/80 px-6 py-4">
+            <div key={`cap-${si}-${ii}`} className="caption-rise max-w-3xl mx-auto text-center">
+              <div className="flex items-center justify-center gap-2 mb-1.5">
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: sec.accent }} />
+                <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-stone-400">
+                  {sec.label} · {item.title || item.id}
+                </span>
+              </div>
+              <p className="text-stone-300 text-sm leading-relaxed">{captionFor(item)}</p>
+            </div>
+
+            <div className="max-w-5xl mx-auto mt-3.5 flex items-center gap-4">
+              <span className="flex-1 font-mono text-[10px] uppercase tracking-wider text-stone-600">
+                figure {ii + 1} / {items.length}
+              </span>
+              <div className="flex items-center gap-1.5">
+                {items.map((_, k) => (
+                  <button key={k} onClick={() => setII(k)}
+                    className="rounded-full transition-all"
+                    style={{ width: k === ii ? 18 : 6, height: 6,
+                             background: k === ii ? sec.accent : '#44403c' }} />
+                ))}
+              </div>
+              <div className="flex-1 flex justify-end">
+                {!isLastSection ? (
+                  <button onClick={() => changeSection(1)}
+                    className={`px-4 py-2 rounded-sm font-mono text-[10px] uppercase tracking-[0.13em] transition-all flex items-center gap-1.5
+                      ${atSectionEnd ? 'text-stone-950 hover:scale-105' : 'border border-stone-700 text-stone-300 hover:border-stone-500'}`}
+                    style={atSectionEnd ? { background: sections[si + 1].accent } : {}}>
+                    Next stage <ArrowRight className="w-3 h-3" />
+                  </button>
+                ) : (
+                  <button onClick={onClose}
+                    className="px-4 py-2 rounded-sm font-mono text-[10px] uppercase tracking-[0.13em] bg-stone-100 text-stone-950 hover:bg-orange-300 transition-colors flex items-center gap-1.5">
+                    Finish <Check className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>,
+    document.body,
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  RUN-MODE DIALOG  (full analysis vs fast / pretrained)
+// ─────────────────────────────────────────────────────────────────────────
+function RunModeDialog({ selectionSites, onChoose, onCancel }) {
+  const [cache, setCache] = useState(null); // null = still loading
+
+  useEffect(() => {
+    fetch(`${API}/api/cache-info`)
+      .then(r => r.json())
+      .then(setCache)
+      .catch(() => setCache({ available: false, sites: [], use_case: null }));
+  }, []);
+
+  const sel       = [...(selectionSites || [])].sort().join(',');
+  const cachedSet = cache ? [...(cache.sites || [])].sort().join(',') : '';
+  const cohortMatch = !!cache && cache.available && sel.length > 0 && sel === cachedSet;
+  const fastReason = cache === null ? 'checking cache…'
+    : !cache.available ? 'no previous full analysis is cached'
+    : !cohortMatch     ? 'selected sites differ from the cached run'
+    : null;
+
+  // Rendered inline in the chat, as a card below the assistant's message —
+  // not a modal popup.
+  return (
+    <div className="slide-pop bg-stone-950/80 border border-stone-800 rounded-lg overflow-hidden">
+      <SpecBar />
+      <div className="p-5">
+        <div className="font-mono text-[10px] uppercase tracking-[0.24em] text-stone-500 mb-2">
+          choose analysis mode
+        </div>
+        <h3 className="font-display text-xl text-stone-100 mb-1">How should HELIO run this?</h3>
+        <p className="text-stone-400 text-xs mb-4 leading-relaxed">
+          A full analysis recomputes everything from the raw hyperspectral cubes.
+          Fast mode reuses the pretrained model and cached maps.
+        </p>
+        <div className="grid md:grid-cols-2 gap-3">
+          <button onClick={() => onChoose(false)}
+            className="text-left rounded-md border border-stone-700 bg-stone-900/60 p-4 hover:border-orange-500/60 hover:bg-stone-900 transition-all">
+            <div className="flex items-center gap-2 mb-2">
+              <Satellite className="w-4 h-4 text-orange-400" />
+              <span className="font-display text-base text-stone-100">Full analysis</span>
+            </div>
+            <p className="text-stone-400 text-xs leading-relaxed mb-3">
+              Re-explores, re-indexes, retrains the autoencoder and re-evaluates
+              from scratch. Most accurate.
+            </p>
+            <span className="font-mono text-[10px] uppercase tracking-wider text-stone-500">~60–90 s</span>
+          </button>
+          <button onClick={() => cohortMatch && onChoose(true)} disabled={!cohortMatch}
+            className={`text-left rounded-md border p-4 transition-all
+              ${cohortMatch ? 'border-emerald-700/60 bg-emerald-500/5 hover:border-emerald-500 hover:bg-emerald-500/10'
+                            : 'border-stone-800 bg-stone-950/40 opacity-60 cursor-not-allowed'}`}>
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles className={`w-4 h-4 ${cohortMatch ? 'text-emerald-400' : 'text-stone-600'}`} />
+              <span className="font-display text-base text-stone-100">Fast mode</span>
+            </div>
+            <p className="text-stone-400 text-xs leading-relaxed mb-3">
+              Reuses the pretrained autoencoder and cached spectral maps — re-scores
+              the cohort against your new use case instantly.
+            </p>
+            <span className={`font-mono text-[10px] uppercase tracking-wider
+              ${cohortMatch ? 'text-emerald-400' : 'text-stone-600'}`}>
+              {cohortMatch ? '~instant · reuses trained model' : (fastReason || 'unavailable')}
+            </span>
+          </button>
+        </div>
+        <button onClick={onCancel}
+          className="mt-4 font-mono text-[10px] uppercase tracking-wider text-stone-500 hover:text-stone-300 transition-colors">
+          ← back to chat
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  SESSION HISTORY
+// ─────────────────────────────────────────────────────────────────────────
+function fmtSavedAt(ts) {
+  if (!ts) return '—';
+  try { return new Date(ts * 1000).toLocaleString(); } catch (e) { return '—'; }
+}
+
+function HistoryScreen({ onBack, onOpen }) {
+  const [sessions, setSessions] = useState(null); // null = loading
+
+  useEffect(() => {
+    fetch(`${API}/api/sessions`)
+      .then(r => r.json())
+      .then(d => setSessions(d.sessions || []))
+      .catch(() => setSessions([]));
+  }, []);
+
+  return (
+    <div className="min-h-screen flex flex-col fade-in">
+      <SpecBar />
+      <header className="max-w-5xl mx-auto px-6 pt-6 pb-4 w-full flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <HelioLogo size={26} />
+          <div>
+            <div className="font-display text-lg text-stone-100 leading-none">Past sessions</div>
+            <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-stone-500 mt-0.5">
+              archived analyses
+            </div>
+          </div>
+        </div>
+        <button onClick={onBack}
+          className="font-mono text-[10px] uppercase tracking-wider text-stone-500 hover:text-stone-200 transition-colors">
+          ← back
+        </button>
+      </header>
+      <main className="flex-1 max-w-5xl mx-auto px-6 pb-10 w-full">
+        {sessions === null ? (
+          <div className="flex items-center gap-2 text-stone-500 py-24 justify-center">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span className="font-mono text-xs uppercase tracking-wider">loading…</span>
+          </div>
+        ) : sessions.length === 0 ? (
+          <div className="text-center py-24 text-stone-600 font-mono text-sm">
+            No archived sessions yet — complete an analysis and it will appear here.
+          </div>
+        ) : (
+          <div className="grid gap-3">
+            {sessions.map(s => (
+              <button key={s.session_id} onClick={() => onOpen(s.session_id)}
+                className="slide-pop text-left rounded-md border border-stone-800 bg-stone-950/50 p-5 hover:border-stone-600 transition-all flex items-center gap-5">
+                <div className="w-1.5 h-14 rounded-full flex-shrink-0"
+                     style={{ background: COLOR[s.winner] || '#888' }} />
+                <div className="flex-1 min-w-0">
+                  <div className="font-display text-lg text-stone-100 truncate">
+                    {s.use_case || 'Analysis'}
+                  </div>
+                  <div className="font-mono text-[10px] uppercase tracking-wider text-stone-500 mt-1">
+                    winner · {DISPLAY[s.winner] || s.winner || '—'} · {s.ranking?.length || 0} sites · {s.message_count} messages
+                  </div>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <div className="font-mono text-[10px] text-stone-500">{fmtSavedAt(s.saved_at)}</div>
+                  <div className="font-mono text-[10px] uppercase tracking-wider text-orange-400 mt-1">open →</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </main>
+      <SpecBar />
+    </div>
+  );
+}
+
+function ConversationModal({ messages, onClose }) {
+  return createPortal(
+    <div className="flex flex-col fade-in"
+         style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                  zIndex: 9998, background: '#0b0a09' }}>
+      <div className="flex-shrink-0 flex items-center justify-between px-6 py-3.5 border-b border-stone-800/80">
+        <div className="flex items-center gap-2.5">
+          <HelioLogo size={20} />
+          <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-stone-400">
+            conversation transcript
+          </span>
+        </div>
+        <button onClick={onClose}
+          className="font-mono text-[10px] uppercase tracking-wider text-stone-500 hover:text-stone-100 transition-colors">
+          ✕ close
+        </button>
+      </div>
+      <div className="flex-1 overflow-y-auto"
+           style={{ scrollbarWidth: 'thin', scrollbarColor: '#3a352c transparent' }}>
+        <div className="max-w-3xl mx-auto px-6 py-8 space-y-6">
+          {(messages || []).length === 0 ? (
+            <div className="text-center text-stone-600 font-mono text-xs py-20">
+              no messages recorded for this session
+            </div>
+          ) : messages.map((m, i) => <ChatBubble key={i} message={m} />)}
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+function SessionReplayScreen({ sessionId, onBack }) {
+  const [record, setRecord] = useState(null); // null = loading, false = error
+  const [showChat, setShowChat] = useState(false);
+
+  useEffect(() => {
+    fetch(`${API}/api/session/${sessionId}`)
+      .then(r => (r.ok ? r.json() : Promise.reject()))
+      .then(setRecord)
+      .catch(() => setRecord(false));
+  }, [sessionId]);
+
+  if (record === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center fade-in">
+        <div className="flex items-center gap-2 text-stone-500">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          <span className="font-mono text-xs uppercase tracking-wider">loading session…</span>
+        </div>
+      </div>
+    );
+  }
+  if (!record || !record.results) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 fade-in">
+        <p className="text-stone-400">This session could not be loaded.</p>
+        <button onClick={onBack}
+          className="font-mono text-xs uppercase tracking-wider text-orange-400 hover:text-orange-300">
+          ← back to history
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <ResultsScreen
+        results={record.results}
+        skipIntro
+        onBack={onBack}
+        onShowChat={() => setShowChat(true)}
+      />
+      {showChat && (
+        <ConversationModal messages={record.messages || []} onClose={() => setShowChat(false)} />
+      )}
+    </>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+//  Root
+// ─────────────────────────────────────────────────────────────────────────
+function App() {
+  const [started, setStarted] = useState(false);
+  const [uploadResult, setUploadResult] = useState(null);
+  const [results, setResults] = useState(null);
+  const [view, setView] = useState('main');     // main | history | replay
+  const [replayId, setReplayId] = useState(null);
+  const [cursorOn, setCursorOn] = useState(true);
+  const [ambientVol, setAmbientVol] = useState(1);   // 0..1 ambient volume
+
+  // Drive the ambient/sound level whenever the slider changes.
+  useEffect(() => { setAmbientVolume(ambientVol); }, [ambientVol]);
+
+  // Global UI click sound — one listener, fires for any enabled button.
+  useEffect(() => {
+    const onClick = (e) => {
+      const btn = e.target.closest && e.target.closest('button');
+      if (btn && !btn.disabled) playClick();
+    };
+    document.addEventListener('click', onClick);
+    return () => document.removeEventListener('click', onClick);
+  }, []);
+
+  // When an analysis finishes, archive the session (transcript + results).
+  const handleResults = useCallback((res, msgs) => {
+    setResults(res);
+    const sid = uploadResult?.session_id;
+    if (sid) {
+      fetch(`${API}/api/session-save`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ session_id: sid, messages: msgs || [], results: res }),
+      }).catch(() => { /* archiving is best-effort */ });
+    }
+  }, [uploadResult]);
+
+  let screen;
+  if (!started) {
+    screen = <IntroScreen onStart={() => setStarted(true)} />;
+  } else if (view === 'history') {
+    screen = <HistoryScreen
+               onBack={() => setView('main')}
+               onOpen={(id) => { setReplayId(id); setView('replay'); }} />;
+  } else if (view === 'replay') {
+    screen = <SessionReplayScreen sessionId={replayId} onBack={() => setView('history')} />;
+  } else if (results) {
+    screen = <ResultsScreen results={results} />;
+  } else if (uploadResult) {
+    screen = <ChatScreen uploadResult={uploadResult} onResults={handleResults} />;
+  } else {
+    screen = (
+      <div className="fade-in">
+        <UploadScreen onUploaded={setUploadResult} onOpenHistory={() => setView('history')} />
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {screen}
+      {cursorOn && <CursorCloud />}
+      <SettingsControl
+        cursorOn={cursorOn} setCursorOn={setCursorOn}
+        ambientVol={ambientVol} setAmbientVol={setAmbientVol}
+      />
+    </>
+  );
+}
+
+createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
